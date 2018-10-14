@@ -1,0 +1,236 @@
+2018-05-05 22:32:49,840 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:32:49,863 INFO RPC interface 'supervisor' initialized
+2018-05-05 22:32:49,863 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 22:32:49,864 INFO daemonizing the supervisord process
+2018-05-05 22:32:49,865 INFO set current directory: './storage/logs/'
+2018-05-05 22:32:49,865 INFO supervisord started with pid 4857
+2018-05-05 22:32:50,867 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:32:50,867 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:32:50,868 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:32:50,868 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:32:51,870 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:32:51,870 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:32:51,870 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:32:51,871 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:32:53,873 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:32:53,874 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:32:53,874 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:32:53,874 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:32:56,878 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:32:56,879 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 22:32:56,879 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:32:56,879 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 22:32:56,879 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:32:56,879 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 22:32:56,880 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:32:56,880 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
+2018-05-05 22:37:55,242 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:44:49,861 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:44:50,175 INFO RPC interface 'supervisor' initialized
+2018-05-05 22:44:50,176 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 22:44:50,176 INFO daemonizing the supervisord process
+2018-05-05 22:44:50,177 INFO set current directory: './storage/logs/'
+2018-05-05 22:44:50,177 INFO supervisord started with pid 5259
+2018-05-05 22:44:51,179 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:44:51,179 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:44:51,180 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:44:51,180 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:44:52,181 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:44:52,182 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:44:52,182 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:44:52,182 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:44:54,185 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:44:54,186 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:44:54,186 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:44:54,186 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:44:57,190 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:44:57,190 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 22:44:57,190 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:44:57,190 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 22:44:57,191 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:44:57,191 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 22:44:57,191 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:44:57,191 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
+2018-05-05 22:45:24,669 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:45:52,113 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:46:44,522 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:46:44,839 INFO RPC interface 'supervisor' initialized
+2018-05-05 22:46:44,839 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 22:46:44,840 INFO daemonizing the supervisord process
+2018-05-05 22:46:44,841 INFO set current directory: './storage/logs/'
+2018-05-05 22:46:44,841 INFO supervisord started with pid 5543
+2018-05-05 22:46:45,844 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:46:45,844 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:46:45,844 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:46:45,845 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:46:46,846 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:46:46,847 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:46:46,847 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:46:46,847 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:46:48,851 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:46:48,851 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:46:48,851 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:46:48,852 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:46:51,856 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:46:51,856 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 22:46:51,856 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:46:51,856 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 22:46:51,856 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:46:51,857 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 22:46:51,857 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:46:51,857 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
+2018-05-05 22:53:16,295 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:58:03,813 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:58:04,128 INFO RPC interface 'supervisor' initialized
+2018-05-05 22:58:04,128 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 22:58:04,129 INFO daemonizing the supervisord process
+2018-05-05 22:58:04,130 INFO set current directory: './storage/logs/'
+2018-05-05 22:58:04,130 INFO supervisord started with pid 5988
+2018-05-05 22:58:05,132 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:58:05,133 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:58:05,133 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:58:05,133 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:58:06,135 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:58:06,136 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:58:06,136 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:58:06,137 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:58:08,140 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:58:08,141 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:58:08,141 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:58:08,142 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:58:11,147 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:58:11,147 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 22:58:11,148 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:58:11,148 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 22:58:11,149 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:58:11,149 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 22:58:11,149 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:58:11,149 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
+2018-05-05 22:59:45,812 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 22:59:46,128 INFO RPC interface 'supervisor' initialized
+2018-05-05 22:59:46,129 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 22:59:46,130 INFO daemonizing the supervisord process
+2018-05-05 22:59:46,131 INFO set current directory: './storage/logs/'
+2018-05-05 22:59:46,131 INFO supervisord started with pid 6094
+2018-05-05 22:59:47,134 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:59:47,134 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:59:47,135 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:59:47,135 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:59:48,137 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:59:48,137 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:59:48,138 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:59:48,155 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:59:50,158 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:59:50,159 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:59:50,159 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:59:50,160 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:59:53,164 INFO spawnerr: unknown error making dispatchers for 'qnWorker_01': ENOENT
+2018-05-05 22:59:53,164 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 22:59:53,165 INFO spawnerr: unknown error making dispatchers for 'qnWorker_00': ENOENT
+2018-05-05 22:59:53,165 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 22:59:53,166 INFO spawnerr: unknown error making dispatchers for 'qnWorker_03': ENOENT
+2018-05-05 22:59:53,166 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 22:59:53,166 INFO spawnerr: unknown error making dispatchers for 'qnWorker_02': ENOENT
+2018-05-05 22:59:53,166 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
+2018-05-05 23:08:33,961 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 23:08:34,278 INFO RPC interface 'supervisor' initialized
+2018-05-05 23:08:34,278 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 23:08:34,279 INFO daemonizing the supervisord process
+2018-05-05 23:08:34,279 INFO set current directory: './storage/logs/'
+2018-05-05 23:08:34,279 INFO supervisord started with pid 6420
+2018-05-05 23:08:35,283 INFO spawned: 'qnWorker_01' with pid 6430
+2018-05-05 23:08:35,286 INFO spawned: 'qnWorker_00' with pid 6431
+2018-05-05 23:08:35,290 INFO spawned: 'qnWorker_03' with pid 6432
+2018-05-05 23:08:35,298 INFO spawned: 'qnWorker_02' with pid 6433
+2018-05-05 23:08:35,905 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:08:35,934 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:08:35,951 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:08:35,953 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:08:36,956 INFO spawned: 'qnWorker_01' with pid 6434
+2018-05-05 23:08:36,958 INFO spawned: 'qnWorker_00' with pid 6435
+2018-05-05 23:08:36,960 INFO spawned: 'qnWorker_03' with pid 6436
+2018-05-05 23:08:36,962 INFO spawned: 'qnWorker_02' with pid 6437
+2018-05-05 23:08:37,508 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:08:37,537 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:08:37,550 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:08:37,551 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:08:39,555 INFO spawned: 'qnWorker_01' with pid 6438
+2018-05-05 23:08:39,557 INFO spawned: 'qnWorker_00' with pid 6439
+2018-05-05 23:08:39,559 INFO spawned: 'qnWorker_03' with pid 6440
+2018-05-05 23:08:39,561 INFO spawned: 'qnWorker_02' with pid 6441
+2018-05-05 23:08:40,100 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:08:40,100 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:08:40,110 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:08:40,116 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:08:43,121 INFO spawned: 'qnWorker_01' with pid 6442
+2018-05-05 23:08:43,123 INFO spawned: 'qnWorker_00' with pid 6443
+2018-05-05 23:08:43,125 INFO spawned: 'qnWorker_03' with pid 6444
+2018-05-05 23:08:43,127 INFO spawned: 'qnWorker_02' with pid 6445
+2018-05-05 23:08:43,672 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:08:43,673 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 23:08:43,675 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:08:43,676 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 23:08:43,684 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:08:43,684 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 23:08:43,684 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:08:44,686 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
+2018-05-05 23:17:19,300 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 23:17:19,615 INFO RPC interface 'supervisor' initialized
+2018-05-05 23:17:19,615 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 23:17:19,616 INFO daemonizing the supervisord process
+2018-05-05 23:17:19,616 INFO set current directory: './storage/logs/'
+2018-05-05 23:17:19,617 INFO supervisord started with pid 6950
+2018-05-05 23:17:20,620 INFO spawned: 'qnWorker_01' with pid 6960
+2018-05-05 23:17:20,622 INFO spawned: 'qnWorker_00' with pid 6961
+2018-05-05 23:17:20,624 INFO spawned: 'qnWorker_03' with pid 6962
+2018-05-05 23:17:20,630 INFO spawned: 'qnWorker_02' with pid 6963
+2018-05-05 23:17:21,631 INFO success: qnWorker_01 entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2018-05-05 23:17:21,632 INFO success: qnWorker_00 entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2018-05-05 23:17:21,632 INFO success: qnWorker_03 entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2018-05-05 23:17:21,632 INFO success: qnWorker_02 entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2018-05-05 23:17:21,775 INFO exited: qnWorker_02 (exit status 0; expected)
+2018-05-05 23:17:21,813 INFO exited: qnWorker_00 (exit status 0; expected)
+2018-05-05 23:17:21,858 INFO exited: qnWorker_03 (exit status 0; expected)
+2018-05-05 23:17:21,872 INFO exited: qnWorker_01 (exit status 0; expected)
+2018-05-05 23:30:10,038 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+2018-05-05 23:30:10,356 INFO RPC interface 'supervisor' initialized
+2018-05-05 23:30:10,356 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2018-05-05 23:30:10,357 INFO daemonizing the supervisord process
+2018-05-05 23:30:10,357 INFO set current directory: './storage/logs/'
+2018-05-05 23:30:10,358 INFO supervisord started with pid 7558
+2018-05-05 23:30:11,362 INFO spawned: 'qnWorker_01' with pid 7568
+2018-05-05 23:30:11,365 INFO spawned: 'qnWorker_00' with pid 7569
+2018-05-05 23:30:11,369 INFO spawned: 'qnWorker_03' with pid 7570
+2018-05-05 23:30:11,375 INFO spawned: 'qnWorker_02' with pid 7571
+2018-05-05 23:30:12,128 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:30:12,141 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:30:12,142 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:30:12,142 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:30:13,145 INFO spawned: 'qnWorker_01' with pid 7581
+2018-05-05 23:30:13,148 INFO spawned: 'qnWorker_00' with pid 7582
+2018-05-05 23:30:13,151 INFO spawned: 'qnWorker_03' with pid 7583
+2018-05-05 23:30:13,154 INFO spawned: 'qnWorker_02' with pid 7584
+2018-05-05 23:30:13,715 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:30:13,751 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:30:13,771 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:30:13,777 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:30:15,781 INFO spawned: 'qnWorker_01' with pid 7585
+2018-05-05 23:30:15,783 INFO spawned: 'qnWorker_00' with pid 7586
+2018-05-05 23:30:15,785 INFO spawned: 'qnWorker_03' with pid 7587
+2018-05-05 23:30:15,787 INFO spawned: 'qnWorker_02' with pid 7588
+2018-05-05 23:30:16,302 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:30:16,377 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:30:16,429 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:30:16,463 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:30:19,469 INFO spawned: 'qnWorker_01' with pid 7589
+2018-05-05 23:30:19,471 INFO spawned: 'qnWorker_00' with pid 7590
+2018-05-05 23:30:19,473 INFO spawned: 'qnWorker_03' with pid 7591
+2018-05-05 23:30:19,474 INFO spawned: 'qnWorker_02' with pid 7592
+2018-05-05 23:30:20,004 INFO exited: qnWorker_00 (exit status 255; not expected)
+2018-05-05 23:30:20,039 INFO gave up: qnWorker_00 entered FATAL state, too many start retries too quickly
+2018-05-05 23:30:20,054 INFO exited: qnWorker_01 (exit status 255; not expected)
+2018-05-05 23:30:20,055 INFO gave up: qnWorker_01 entered FATAL state, too many start retries too quickly
+2018-05-05 23:30:20,063 INFO exited: qnWorker_03 (exit status 255; not expected)
+2018-05-05 23:30:20,067 INFO gave up: qnWorker_03 entered FATAL state, too many start retries too quickly
+2018-05-05 23:30:20,078 INFO exited: qnWorker_02 (exit status 255; not expected)
+2018-05-05 23:30:21,079 INFO gave up: qnWorker_02 entered FATAL state, too many start retries too quickly
