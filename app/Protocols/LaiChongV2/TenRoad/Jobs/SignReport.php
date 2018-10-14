@@ -1,19 +1,16 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
-
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
-
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
-
 use Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\EvseController;
 class SignReport implements ShouldQueue
 {
@@ -30,17 +27,7 @@ class SignReport implements ShouldQueue
     protected $num;
 
     /**
-     * @var string 设备编号
-     */
-    protected $device_identification;
-
-    /**
-     * @var string 心跳周期
-     */
-    protected $heabeat_cycle;
-
-    /**
-     * @var string 设备编号
+     * @var string worker_id
      */
     protected $worker_id;
 
@@ -54,16 +41,12 @@ class SignReport implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($code, $num, $device_identification, $heabeatCycle, $worker_id, $version)
+    public function __construct($code, $num, $worker_id, $version)
     {
-
         $this->code = $code;
         $this->num = $num;
-        $this->device_identification = $device_identification;
-        $this->heabeat_cycle = $heabeatCycle;
         $this->worker_id = $worker_id;
         $this->version = $version;
-
     }
 
     /**
@@ -74,10 +57,6 @@ class SignReport implements ShouldQueue
     public function handle()
     {
         $evseController = new EvseController();
-        $evseController->signReport($this->code, $this->num, $this->device_identification, $this->heabeat_cycle, $this->worker_id, $this->version);
-
+        $evseController->signReport($this->code, $this->num, $this->worker_id, $this->version);
     }
-
-
-
 }

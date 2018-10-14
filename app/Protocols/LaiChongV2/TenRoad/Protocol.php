@@ -10,11 +10,11 @@ namespace Wormhole\Protocols\LaiChongV2\TenRoad;
 
 use Workerman\Connection\TcpConnection;
 use Wormhole\Protocols\Tools;
-use Wormhole\Protocols\TenRoad\Protocol\Frame;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
 use Illuminate\Support\Facades\Log;
 class Protocol
 {
-    const NAME="TenRoad";//QuChong
+    const NAME="TenRoad";
     const MAX_TIMEOUT=30;
 
     /**

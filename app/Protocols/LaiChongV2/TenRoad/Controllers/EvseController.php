@@ -243,8 +243,7 @@ class EvseController extends Controller
     //***************************************桩主动上报***********************************//
 
     //签到
-    public function signReport($code, $num, $device_identification, $heabeat_cycle, $worker_id, $version){
-
+    public function signReport($code, $num, $worker_id, $version){
         //枪口列表
         $portArr = [];
         Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,处理数据start ");
@@ -252,7 +251,6 @@ class EvseController extends Controller
         $evse = Evse::where("code",$code)->first(); //firstOrFail
         //找不到添加桩和枪
         if(empty($evse)){
-
             for ($i=0;$i<$num;$i++){
                 $portArr[] = $i;
             }
@@ -262,25 +260,17 @@ class EvseController extends Controller
                 Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,添加桩和枪,调用monitor失败 code:$code ");
                 return false;
             }
-            //添加桩信息
-            //Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 未找到桩 ");
-            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,处理数据 device_identification:$device_identification  ");
             //初始化request_result
-            $data = ['heartbeat_cycle'=>0, 'domain_name'=>0, 'port_number'=>0, 'parameter'=>0, 'device_id'=>0];
+            $data = ['heartbeat_cycle'=>0, 'port_number'=>0, 'threshold'=>0, 'parameter'=>0, 'device_id'=>0];
             $data = json_encode($data);
             $evse = Evse::create([
                 'code'=>$code,
                 'worker_id'=>$worker_id,//$this->workerId,
-                'protocol_name'=> \Wormhole\Protocols\QianNiu\Protocol::NAME,
+                'protocol_name'=> \Wormhole\Protocols\LaiChongV2\TenRoad\Protocol::NAME,
                 'channel_num'=>$num,
                 'online_status'=>1,
                 'last_update_status_time'=>Carbon::now(),
-                'request_result'=>$data,
-                'identification_number'=>$device_identification,
-                'heartbeat_cycle'=>$heabeat_cycle,
-                //'version'=>$version
-
-
+                'request_result'=>$data
             ]);
             //如果创建桩失败,返回false
             if(empty($evse)){
@@ -290,7 +280,6 @@ class EvseController extends Controller
 
             //添加枪信息
             for($i=0;$i<$num;$i++){
-
                 $port = Port::create([
                     'evse_id'=>$evse->id,
                     'code'=>$code,
@@ -304,128 +293,15 @@ class EvseController extends Controller
                 }
             }
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,添加桩和枪,调用monitor成功 code:$code ");
-
             //应答充电桩
             $this->signResponse($code, $worker_id);
-
             return true;
-
-        }else{
-
-            //更新桩信息
-            $evse->worker_id = $worker_id;//$this->workerId;
-            $evse->channel_num = $num;
-            $evse->identification_number = $device_identification;
-            $evse->heartbeat_cycle = $heabeat_cycle;
-            $evse->online_status = 1; //在线
-            //$evse->version = $version; //版本号
-            $evse->save();
-
-            //如果枪口数量与表中不一致,进行修改
-            $count = Port::where('code', $code)->count();
-            //如果枪口数量增加，则添加枪口
-            if($num > $count){
-                //增加的个数
-                $addNum = $num - $count;
-                //判断有没有软删除的,有的先恢复
-                $res = Port::onlyTrashed()->where('code','1')->orderBy('port_number', 'asc')->get();
-                $softNum = count($res);
-                $addPort = 0;
-                $increase = 0;
-                //如果有软删除数据
-                if($softNum > 0){
-
-                    //如果软删除个数大于增加的个数或者相同
-                    if($addNum <= $softNum){
-                        for($i=0;$i<$addNum;$i++){
-                            $res[$i]->restore();
-                        }
-                    }elseif($addNum > $softNum){ //如果软删除的小于增加的
-                        //后面还要添加的个数
-                        $addPort = $addNum - $softNum;
-                        for($i=0;$i<$addNum;$i++){
-                            $res[$i]->restore();
-                        }
-                        //增加到了多少
-                        $increase = $res[$i]->port_number+1;
-                    }
-
-                }
-
-                for($i=$count;$i<$num;$i++){
-                    $portArr[] = $i;
-                }
-                $monitorCodes = MonitorServer::deviceOnline($code, $num, $portArr, $version);
-                if(!is_array($monitorCodes)){
-                    Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,枪口增加,调用monitor失败 ");
-                    return false;
-                }
-
-                if(!empty($addPort)){
-
-                    //添加枪信息
-                    for($i=$increase;$i<$addPort;$i++){
-
-                        $port = Port::create([
-                            'evse_id'=>$evse->id,
-                            'code'=>$code,
-                            'port_number'=>$i,
-                            'monitor_code'=>$monitorCodes[$softNum++],
-                        ]);
-                        //添加枪失败
-                        if(empty($port)){
-                            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 更新桩信息,创建通道 $i 失败 ");
-                            return false;
-                        }
-                    }
-                    Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,枪口增加,调用monitorc成功 ");
-
-                }
-
-
-                //应答充电桩
-                $this->signResponse($code, $worker_id);
-
-                return true;
-            }elseif ($num < $count){ //如果枪口数量减少,软删除多余枪口
-
-                //找到多余的枪口
-                $condition = [
-                    ['code', '=', $code],
-                    ['port_number', '>=', $num]
-                ];
-                $port = Port::where($condition)->get();
-                $count = count($port);
-                for ($i=0;$i<$count;$i++){
-                    $port[$i]->delete();
-                    $portArr[] = $port[$i]->port_number;
-                }
-
-                //减少的枪口列表
-//                 for($i=$num;$i<$count;$i++){
-//                     $portArr[] = $i;
-//                 }
-                $monitorCodes = MonitorServer::deviceOnline($code, $num, $portArr, $version);
-
-                if(is_array($monitorCodes)){
-
-                    //应答充电桩
-                    //$this->signResponse($code, $worker_id);
-
-                    Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,枪口减少,调用monitor成功 ");
-                    return true;
-                }else{
-                    Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,枪口减少,调用monitor失败 ");
-                    return false;
-                }
-            }
-
         }
 
         //更新桩数据
-        $evse->worker_id = $worker_id;//$this->workerId;
+        $evse->worker_id = $worker_id;
+        $evse->channel_num = $num;
         $evse->online_status = 1; //在线
-        //$evse->version = $version; //版本号
         $res = $evse->save();
         if(empty($res)){
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,更新数据失败 ");
@@ -440,41 +316,24 @@ class EvseController extends Controller
 
         //如果调用monitor成功,应答充电桩
         if($monitorCodes){
-            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,枪口数量不变,调用monitor成功 ");
-            //应答充电桩
-            //$this->signResponse($code, $worker_id);
+            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,调用monitor成功 ");
             return true;
         }else{
-            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,枪口数量不变,调用monitor失败 ");
+            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,调用monitor失败 ");
             return false;
         }
-
     }
-
 
     //应答充电桩
     public function signResponse($code, $worker_id){
-
-        //如果接收到数据,应答充电桩
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = $this->serial_num($code);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,流水号serialNumber：$serialNumber ");
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到应答桩start " . Carbon::now());
-        $date = date('YmdHis', time());//当前时间
-        $date = substr($date, 2);
         $sign = new ServerSign();
         $sign->code($code);
-        $sign->serial_number(intval($serialNumber));
         $sign->result(1);
-        $sign->date(intval($date));
         $frame = strval($sign);
-        $sendResult  = EventsApi::sendMsg($worker_id,$frame);//self::$client_id
+        $sendResult  = EventsApi::sendMsg($worker_id,$frame);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到响应充电桩结果,sendResult:$sendResult " . Carbon::now());
-
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,响应充电桩 结果 $sendResult, 帧frame: ".bin2hex($frame) );
-
-
     }
 
 

@@ -40,35 +40,18 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Sign as ServerSign;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
 
-//桩自动停止
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\AutomaticStop as EvseAutomaticStop;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\AutomaticStop as ServerAutomaticStop;
-
-//状态上报
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Statusreport as EvseStatusreport;
-
-//日结
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Report as EvseReport;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Report as ServerReport;
 //启动充电
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\StartCharge as EvseStartCharge;
 
 //续费
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Renew as ServerRenew;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Renew as EvseRenew;
 
 //停止充电
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StopCharge as ServerStopCharge;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\StopCharge as EvseStopCharge;
 
 //心跳设置
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetHearbeat as ServerSetHearbeat;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetHearbeat as EvseHearbeat;
-
-//服务器信息设置
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\ServerInfo as ServerInfo;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ServerInfo as EvseServerInfo;
 
 //清空营业额
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\EmptyTurnover as ServerEmptyTurnover;
@@ -76,11 +59,6 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\EmptyTurnover as EvseEmp
 
 //设置参数
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetParameter as ServerSetParameter;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetParameter as EvseSetParameter;
-
-//设置ID
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetId as ServerSetId;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetId as EvseSetId;
 
 //心跳查询
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetHearbeat as ServerGetHeartbeat;
@@ -88,22 +66,16 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetHearbeat as EvseGetHe
 
 //电表抄表
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\ReadMeter as ServerReadMeter;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ReadMeter as EvseReadMeter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ReadMeterSuccess;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ReadMeterFail;
 
 //营业额查询
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetTurnover as ServerGetTurnover;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetTurnover as EvseGetTurnover;
 
-//通道查询
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetChannelStatus as ServerGetChannelStatus;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetChannelStatus as EvseGetChannelStatus;
-
 //查询参数
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetParameter as ServerGetParameter;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetParameter as EvseGetParameter;
-
-//设置时间
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetDateTime as EvseSetDateTime;
 
 //查询时间
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetDateTime as EvseGetDateTime;
@@ -278,38 +250,27 @@ class EventsApi extends BaseEvents
     {
         $sign = new EvseSign();
         $sign($message);
+
         //接收数据
         $version = $sign->version->getValue();//版本号
         $code = $sign->code->getValue(); //桩编号
-        $num = $sign->num->getValue();   //枪口数量
-        $heabeatCycle = $sign->heabeat_cycle->getValue();
-        $device_identification = $sign->device_identification->getValue(); //设备编号
-
+        $num = 10; //枪口数量
         //判断接收数据是否正确
-        if(empty($code) || !is_numeric($num) || empty($device_identification) || empty($version)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到上报,数据不正确, code:$code, num:$num, device_identification:$device_identification, version:$version ");
+        if(empty($code) || empty($version)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到上报,数据不正确, code:$code, version:$version ");
             return false;
         }
 
-        //每次签到重置一下流水号
-        Redis::set($code.':serial_number',1);
-
         //记录对应某个桩的log
-        $file_data = " 签到,桩上报时间 date: ".Carbon::now().PHP_EOL." 签到,桩上报参数 code:$code, num:$num, device_identification:$device_identification, heabeatCycle:$heabeatCycle, version:$version ".PHP_EOL." 签到,桩上报帧 frame: ".bin2hex($message);
-        $redis_data = "签到,桩上报".'-'.json_encode(array('code'=>$code, 'num'=>$num, 'heabeatCycle'=>$heabeatCycle, 'device_identification'=>$device_identification, 'version'=>$version)).'-'.bin2hex($message).'-'.Carbon::now().'+';
+        $file_data = " 签到,桩上报时间 date: ".Carbon::now().PHP_EOL." 签到,桩上报参数 code:$code, version:$version ".PHP_EOL." 签到,桩上报帧 frame: ".bin2hex($message);
+        $redis_data = "签到,桩上报".'-'.json_encode(array('code'=>$code, 'version'=>$version)).'-'.bin2hex($message).'-'.Carbon::now().'+';
         self::record_log($code, $file_data, $redis_data);
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", num:$num, code:$code, device_identification:$device_identification, heabeatCycle:$heabeatCycle, version:$version " . Carbon::now());
-
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " version:$version " . Carbon::now());
 
         //处理签到上报数据并应答桩SignReport
-        $job = (new SignReport($code, $num, $device_identification, $heabeatCycle, self::$client_id, $version))
+        $job = (new SignReport($code, $num, self::$client_id, $version))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
-
-
-
     }
 
 
@@ -926,34 +887,12 @@ class EventsApi extends BaseEvents
 
     }
 
-
-
-
-
     //记录log,包括参数,帧,时间
     private static function record_log($code, $fiel_data, $redis_data){
-
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . $fiel_data );
-
         //记录log
         $parameter = $code.uniqid(mt_rand(),1);
         Redis::set($parameter,$redis_data,'EX',86400);
-
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
