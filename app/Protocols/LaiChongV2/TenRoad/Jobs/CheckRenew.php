@@ -1,12 +1,12 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
 
-namespace Wormhole\Protocols\TenRoad\Jobs;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
 
 
 use Illuminate\Bus\Queueable;
@@ -14,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-use Wormhole\Protocols\TenRoad\Controllers\EvseController;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\EvseController;
 class CheckRenew implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;

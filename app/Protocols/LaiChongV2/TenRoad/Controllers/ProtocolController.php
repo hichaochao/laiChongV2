@@ -5,17 +5,17 @@ use Carbon\Carbon;
 use Faker\Provider\Uuid;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
-use Wormhole\Protocols\TenRoad\EventsApi;
-use Wormhole\Protocols\TenRoad\Protocol;
-use Wormhole\Protocols\MonitorServer;
-use Wormhole\Protocols\TenRoad\Models\Evse;
-use Wormhole\Protocols\TenRoad\Models\Port;
-use Wormhole\Protocols\TenRoad\Models\ChargeOrderMapping;
-use Wormhole\Protocols\TenRoad\Models\ChargeRecords;
-use Wormhole\Protocols\TenRoad\Models\Turnover;
-use Wormhole\Protocols\TenRoad\Models\ModifyInfoLog;
+use Wormhole\Protocols\LaiChongV2\TenRoad\EventsApi;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol;
+use Wormhole\Protocols\LaiChongV2\MonitorServer;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Evse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Port;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\ChargeOrderMapping;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\ChargeRecords;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Turnover;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\ModifyInfoLog;
 //心跳队列
-use Wormhole\Protocols\TenRoad\Jobs\CheckHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\CheckHeartbeat;
 
 use Wormhole\Protocols\CommonTools;
 

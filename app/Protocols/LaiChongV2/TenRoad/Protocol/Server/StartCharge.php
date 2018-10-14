@@ -6,8 +6,8 @@
  * Time: 18:20
  */
 
-namespace Wormhole\Protocols\TenRoad\Protocol\Server;
-use Wormhole\Protocols\TenRoad\Protocol\Frame;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
 use Wormhole\Protocols\Library\BIN;
 
 class StartCharge extends Frame

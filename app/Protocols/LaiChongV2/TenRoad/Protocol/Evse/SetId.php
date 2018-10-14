@@ -6,7 +6,7 @@
  * Time: 18:20
  */
 
-namespace Wormhole\Protocols\TenRoad\Protocol\Evse;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse;
 
 
 

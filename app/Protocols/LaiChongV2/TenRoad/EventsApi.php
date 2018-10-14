@@ -27,92 +27,92 @@ use Wormhole\Protocols\Tools;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
 
 use Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\ProtocolController;
-use Wormhole\Protocols\TenRoad\Models\Evse;
-use Wormhole\Protocols\TenRoad\Models\Port;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Evse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Port;
 
 use Wormhole\Protocols\MonitorServer;
 
 //签到
-use Wormhole\Protocols\TenRoad\Protocol\Evse\Sign as EvseSign;
-use Wormhole\Protocols\TenRoad\Protocol\Server\Sign as ServerSign;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Sign as EvseSign;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Sign as ServerSign;
 
 //心跳
-use Wormhole\Protocols\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
-use Wormhole\Protocols\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
 
 //桩自动停止
-use Wormhole\Protocols\TenRoad\Protocol\Evse\AutomaticStop as EvseAutomaticStop;
-use Wormhole\Protocols\TenRoad\Protocol\Server\AutomaticStop as ServerAutomaticStop;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\AutomaticStop as EvseAutomaticStop;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\AutomaticStop as ServerAutomaticStop;
 
 //状态上报
-use Wormhole\Protocols\TenRoad\Protocol\Evse\Statusreport as EvseStatusreport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Statusreport as EvseStatusreport;
 
 //日结
-use Wormhole\Protocols\TenRoad\Protocol\Evse\Report as EvseReport;
-use Wormhole\Protocols\TenRoad\Protocol\Server\Report as ServerReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Report as EvseReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Report as ServerReport;
 //启动充电
-use Wormhole\Protocols\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\StartCharge as EvseStartCharge;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\StartCharge as EvseStartCharge;
 
 //续费
-use Wormhole\Protocols\TenRoad\Protocol\Server\Renew as ServerRenew;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\Renew as EvseRenew;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Renew as ServerRenew;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Renew as EvseRenew;
 
 //停止充电
-use Wormhole\Protocols\TenRoad\Protocol\Server\StopCharge as ServerStopCharge;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\StopCharge as EvseStopCharge;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StopCharge as ServerStopCharge;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\StopCharge as EvseStopCharge;
 
 //心跳设置
-use Wormhole\Protocols\TenRoad\Protocol\Server\SetHearbeat as ServerSetHearbeat;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\SetHearbeat as EvseHearbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetHearbeat as ServerSetHearbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetHearbeat as EvseHearbeat;
 
 //服务器信息设置
-use Wormhole\Protocols\TenRoad\Protocol\Server\ServerInfo as ServerInfo;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\ServerInfo as EvseServerInfo;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\ServerInfo as ServerInfo;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ServerInfo as EvseServerInfo;
 
 //清空营业额
-use Wormhole\Protocols\TenRoad\Protocol\Server\EmptyTurnover as ServerEmptyTurnover;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\EmptyTurnover as EvseEmptyTurnover;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\EmptyTurnover as ServerEmptyTurnover;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\EmptyTurnover as EvseEmptyTurnover;
 
 //设置参数
-use Wormhole\Protocols\TenRoad\Protocol\Server\SetParameter as ServerSetParameter;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\SetParameter as EvseSetParameter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetParameter as ServerSetParameter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetParameter as EvseSetParameter;
 
 //设置ID
-use Wormhole\Protocols\TenRoad\Protocol\Server\SetId as ServerSetId;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\SetId as EvseSetId;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetId as ServerSetId;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetId as EvseSetId;
 
 //心跳查询
-use Wormhole\Protocols\TenRoad\Protocol\Server\GetHearbeat as ServerGetHeartbeat;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetHearbeat as EvseGetHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetHearbeat as ServerGetHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetHearbeat as EvseGetHeartbeat;
 
 //电表抄表
-use Wormhole\Protocols\TenRoad\Protocol\Server\ReadMeter as ServerReadMeter;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\ReadMeter as EvseReadMeter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\ReadMeter as ServerReadMeter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ReadMeter as EvseReadMeter;
 
 //营业额查询
-use Wormhole\Protocols\TenRoad\Protocol\Server\GetTurnover as ServerGetTurnover;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetTurnover as EvseGetTurnover;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetTurnover as ServerGetTurnover;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetTurnover as EvseGetTurnover;
 
 //通道查询
-use Wormhole\Protocols\TenRoad\Protocol\Server\GetChannelStatus as ServerGetChannelStatus;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetChannelStatus as EvseGetChannelStatus;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetChannelStatus as ServerGetChannelStatus;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetChannelStatus as EvseGetChannelStatus;
 
 //查询参数
-use Wormhole\Protocols\TenRoad\Protocol\Server\GetParameter as ServerGetParameter;
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetParameter as EvseGetParameter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetParameter as ServerGetParameter;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetParameter as EvseGetParameter;
 
 //设置时间
-use Wormhole\Protocols\TenRoad\Protocol\Evse\SetDateTime as EvseSetDateTime;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetDateTime as EvseSetDateTime;
 
 //查询时间
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetDateTime as EvseGetDateTime;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetDateTime as EvseGetDateTime;
 
 //查询ID
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetId as EvseGetId;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetId as EvseGetId;
 
 //查询设备识别号
-use Wormhole\Protocols\TenRoad\Protocol\Evse\GetDeviceIdentification as EvseGetDeviceIdentification;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetDeviceIdentification as EvseGetDeviceIdentification;
 
 use Illuminate\Support\Facades\Redis;
 
@@ -120,23 +120,20 @@ use Wormhole\Protocols\Library\Log as Logger;
 
 
 //签到
-use Wormhole\Protocols\TenRoad\Jobs\SignReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\SignReport;
 //自动停止
-use Wormhole\Protocols\TenRoad\Jobs\AutoStopReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\AutoStopReport;
 //日结
-use Wormhole\Protocols\TenRoad\Jobs\TurnoverReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\TurnoverReport;
 //心跳
-use Wormhole\Protocols\TenRoad\Jobs\HeartBeatReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\HeartBeatReport;
 
 //启动充电响应
-use Wormhole\Protocols\TenRoad\Jobs\StartChargeResponse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\StartChargeResponse;
 //续费响应
-use Wormhole\Protocols\TenRoad\Jobs\RenewResponse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\RenewResponse;
 //停止充电响应
-use Wormhole\Protocols\TenRoad\Jobs\StopChargeResponse;
-
-
-
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\StopChargeResponse;
 
 /**
  * 主逻辑
@@ -154,12 +151,9 @@ class EventsApi extends BaseEvents
      */
     public static function message($client_id, $message)
     {
-
-
         self::$client_id = $client_id;
         self::$controller = new ProtocolController($client_id);
         Log::debug(__NAMESPACE__ . "\\" . __CLASS__ . "\\" . __FUNCTION__ . "@" . __LINE__ . "  client_id:$client_id, message:" . bin2hex($message));
-
 
         //帧解析
         $frame = new Frame();
@@ -171,29 +165,27 @@ class EventsApi extends BaseEvents
         }
         //指令
         $operator = $frame->operator->getValue();
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " " . " operator:,".$operator." isValid:$frame->isValid");
+        //设备类型
+        $type = $frame->type->getValue();
+        //互联网模块设备类型
+        $internet_type = 0x01;
+        //C款充电桩主板
+        $main_board_type = 0x10;
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " " . " operator:,".$operator.' type:'.$type." isValid:$frame->isValid");
         if (!empty($frame)) {
-            switch ($operator) {
+            switch ($operator.$type) {
 
                 /*****************************************桩主动上报****************************************************/
-                case (0x1101):
+                case (0x11.$internet_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到 " );
                     self::sign($message);
                     break;
-                case (0x1102):
+                case (0x21.$internet_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳 " );
                     self::hearbeat($message);
                     break;
-                case (0x1103):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 桩自动停止 " );
-                    self::auto_stop($message);
-                    break;
-                case (0x1104):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态上报 " );
-                    self::hearbeat($message);
-                    break;
-                case (0x1105):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结 " );
+                case (0x11.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道状态,通道状态发生变化时主动上传 " );
                     self::report($message);
                     break;
 
@@ -212,76 +204,70 @@ class EventsApi extends BaseEvents
                     break;
 
                 /*****************************************设置类上报****************************************************/
-                case (0x1301):
+                case (0x22.$internet_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳设置 " );
                     self::set_hearbeat_response($message);
                     break;
-                case (0x1302):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 服务器信息设置 " );
+                case (0x31.$internet_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 端口设置 " );
                     self::set_server_info_response($message);
                     break;
-                case (0x1303):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额 " );
-                    self::empty_turnover_response($message);
+                case (0x41.$internet_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值设置 " );
+                    self::set_server_info_response($message);
                     break;
-                case (0x1304):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数 " );
-                    self::set_parameter_response($message);
-                    break;
-                case (0x1305):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置ID " );
-                    self::set_id_response($message);
-                    break;
-                case (0x1306):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间 " );
-                    self::set_date_time_response($message);
-                    break;
-
 
                 /*****************************************查询类上报****************************************************/
-                case (0x1401):
+                case (0x23.$internet_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳查询 " );
                     self::get_hearbeat_response($message);
                     break;
-                case (0x1402):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 电表抄表查询 " );
+                case (0x42.$internet_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值查询 " );
+                    self::get_hearbeat_response($message);
+                    break;
+                case (0x52.$internet_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 电表抄表成功 " );
                     self::get_meter_response($message);
                     break;
-                case (0x1403):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询 " );
-                    self::get_turnover_response($message);
+                case (0x53.$internet_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 电表抄表失败 " );
+                    self::get_meter_response($message);
                     break;
-                case (0x1404):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询 " );
-                    self::get_channel_response($message);
-                    break;
-                case (0x1405):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数 " );
-                    self::get_parameter_response($message);
-                    break;
-                case (0x1406):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询ID " );
-                    self::get_id_response($message);
-                    break;
-                case (0x1407):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询设备识别号 " );
-                    self::get_identification_response($message);
-                    break;
-                case (0x1408):
+                case (0x43.$internet_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询信号强度 " );
                     self::get_signal_response($message);
                     break;
-                case (0x1409):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询时间 " );
+                case (0x33.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询 " );
+                    self::get_turnover_response($message);
+                    break;
+                case (0x34.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道时间 " );
+                    self::get_channel_response($message);
+                    break;
+                case (0x36.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间 " );
+                    self::get_channel_response($message);
+                    break;
+                case (0x35.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 上传状态 " );
+                    self::get_channel_response($message);
+                    break;
+                case (0x31.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数 " );
+                    self::get_parameter_response($message);
+                    break;
+                case (0x32.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询ID " );
+                    self::get_id_response($message);
+                    break;
+                case (0xE0.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 应答 " );
                     self::get_date_time_response($message);
                     break;
-
-
-
             }
         }
-
-
     }
 
 
@@ -290,7 +276,6 @@ class EventsApi extends BaseEvents
     //签到
     private static function sign($message)
     {
-
         $sign = new EvseSign();
         $sign($message);
         //接收数据

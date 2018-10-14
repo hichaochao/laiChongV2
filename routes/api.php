@@ -33,8 +33,8 @@ $api->version('v1', ['namespace' => 'Wormhole\Http\Controllers\Api\V1'], functio
     ]);
 });
 
-//QuChong
-$api->version('QianNiu', ['namespace' => 'Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\Api',
+
+$api->version('TenRoad', ['namespace' => 'Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\Api',
 
 ], function ($api) {
     $api->any('test/{hash}', [

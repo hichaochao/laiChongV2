@@ -1,5 +1,5 @@
 <?php
-namespace Wormhole\Protocols\TenRoad\Controllers;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Controllers;
 /**
  * Created by PhpStorm.
  * User: sc
@@ -10,60 +10,56 @@ namespace Wormhole\Protocols\TenRoad\Controllers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Wormhole\Http\Controllers\Controller;
-use Wormhole\Protocols\TenRoad\Models\Evse;
-use Wormhole\Protocols\TenRoad\Models\Port;
-use Wormhole\Protocols\TenRoad\Models\Turnover;
-use Wormhole\Protocols\TenRoad\Models\ModifyInfoLog;
-use Wormhole\Protocols\TenRoad\Protocol;
-use Wormhole\Protocols\TenRoad\Protocol\Frame;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Evse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Port;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Turnover;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\ModifyInfoLog;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
 use \Curl\Curl;
-use Wormhole\Protocols\TenRoad\Controllers\ProtocolController;
-use Wormhole\Protocols\TenRoad\EventsApi;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\ProtocolController;
+use Wormhole\Protocols\LaiChongV2\TenRoad\EventsApi;
 
 //检测启动续费停止是否收到桩响应
-use Wormhole\Protocols\TenRoad\Jobs\CheckResponse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\CheckResponse;
 use Illuminate\Support\Facades\Queue;
 
 //自动停止上报,如果monitor未成功接收到数据,继续队列发送
-use Wormhole\Protocols\TenRoad\Jobs\AutoStopCharge;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\AutoStopCharge;
 
 //日结上报,如果monitor未成功接收到数据,继续队列发送
-use Wormhole\Protocols\TenRoad\Jobs\Report;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\Report;
 
 //心跳队列
-use Wormhole\Protocols\TenRoad\Jobs\CheckHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\CheckHeartbeat;
 
 use Illuminate\Support\Facades\Redis;
 use Wormhole\Protocols\Library\Log as Logger;
 
 use Wormhole\Protocols\MonitorServer;
 //订单映射表
-use Wormhole\Protocols\TenRoad\Models\ChargeOrderMapping;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\ChargeOrderMapping;
 //充电记录表
-use Wormhole\Protocols\TenRoad\Models\ChargeRecords;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Models\ChargeRecords;
 
 
 //签到
-use Wormhole\Protocols\TenRoad\Protocol\Server\Sign as ServerSign;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Sign as ServerSign;
 //自动停止
-use Wormhole\Protocols\TenRoad\Protocol\Server\AutomaticStop as ServerAutomaticStop;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\AutomaticStop as ServerAutomaticStop;
 //日结
-use Wormhole\Protocols\TenRoad\Protocol\Server\Report as ServerReport;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Report as ServerReport;
 //心跳
-use Wormhole\Protocols\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
-use Wormhole\Protocols\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
 
 
 //启动充电
-use Wormhole\Protocols\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
 //续费
-use Wormhole\Protocols\TenRoad\Protocol\Server\Renew as ServerRenew;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Renew as ServerRenew;
 //停止充电
-use Wormhole\Protocols\TenRoad\Protocol\Server\StopCharge as ServerStopCharge;
-
-
-
-
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StopCharge as ServerStopCharge;
 
 class EvseController extends Controller
 {

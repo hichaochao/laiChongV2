@@ -6,7 +6,7 @@
  * Time: 14:05
  */
 
-namespace Wormhole\Protocols\TenRoad\Protocol;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Protocol;
 
 
 use Wormhole\Protocols\Library\BIN;

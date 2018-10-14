@@ -6,9 +6,9 @@
  * Time: 18:20
  */
 
-namespace Wormhole\Protocols\TenRoad\Protocol\Evse;
-use Wormhole\Protocols\TenRoad\Protocol\Frame;
-use Wormhole\Protocols\TenRoad\Protocol\PortInfo;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\PortInfo;
 use Wormhole\Protocols\Library\BIN;
 use Wormhole\Protocols\Library\CheckSum;
 use Wormhole\Protocols\Library\Variable;

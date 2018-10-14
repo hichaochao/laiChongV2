@@ -6,8 +6,8 @@
  * Time: 18:20
  */
 
-namespace Wormhole\Protocols\TenRoad\Protocol\Evse;
-use Wormhole\Protocols\TenRoad\Protocol\Frame;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
 use Wormhole\Protocols\Library\BIN;
 
 class Answer extends Frame

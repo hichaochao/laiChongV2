@@ -6,9 +6,9 @@
  * Time: 18:20
  */
 
-namespace Wormhole\Protocols\TenRoad\Protocol\Evse;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse;
 use Wormhole\Protocols\Library\BCD;
-use Wormhole\Protocols\TenRoad\Protocol\Frame;
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
 use Wormhole\Protocols\Library\BIN;
 
 class WorkStatus extends Frame

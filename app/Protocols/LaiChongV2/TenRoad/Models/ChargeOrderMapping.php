@@ -1,6 +1,6 @@
 <?php
 
-namespace Wormhole\Protocols\TenRoad\Models;
+namespace Wormhole\Protocols\LaiChongV2\TenRoad\Models;
 
 use Gbuckingham89\EloquentUuid\Traits\UuidForKey;
 use Illuminate\Database\Eloquent\Model;
