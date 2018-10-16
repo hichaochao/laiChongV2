@@ -46,9 +46,5 @@ class CheckHeartbeat implements ShouldQueue
     {
         $evseController = new EvseController();
         $evseController->checkHeartbeat($this->id);
-
     }
-
-
-
 }

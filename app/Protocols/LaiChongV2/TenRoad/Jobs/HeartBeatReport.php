@@ -20,20 +20,29 @@ class HeartBeatReport implements ShouldQueue
     use InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * @var string 心跳数据
+     * @var string 设备编号
      */
-    protected $data;
+    protected $code;
 
     /**
-     * @var string 心跳个数
-     */
-    protected $evse_num;
-
-    /**
-     * @var string clientID
+     * @var string client_id
      */
     protected $client_id;
 
+    /**
+     * @var string 锁定通道
+     */
+    protected $lock_status;
+
+    /**
+     * @var string 工作状态
+     */
+    protected $work_status;
+
+    /**
+     * @var string 故障状态
+     */
+    protected $fault_status;
 
 
     /**
@@ -41,13 +50,13 @@ class HeartBeatReport implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($data, $evse_num, $clientId)
+    public function __construct($code, $client_id, $lock_status, $work_status, $fault_status)
     {
-
-        $this->data = $data;
-        $this->evse_num = $evse_num;
-        $this->client_id = $clientId;
-
+        $this->code = $code;
+        $this->client_id = $client_id;
+        $this->lock_status = $lock_status;
+        $this->work_status = $work_status;
+        $this->fault_status = $fault_status;
     }
 
     /**
@@ -58,8 +67,7 @@ class HeartBeatReport implements ShouldQueue
     public function handle()
     {
         $evseController = new EvseController();
-        $evseController->heartBeatReport($this->data, $this->evse_num, $this->client_id);
-
+        $evseController->heartBeatReport($this->code, $this->client_id, $this->lock_status, $this->work_status, $this->fault_status);
     }
 
 

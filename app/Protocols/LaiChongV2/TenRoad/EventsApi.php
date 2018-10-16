@@ -276,48 +276,28 @@ class EventsApi extends BaseEvents
 
     //心跳
     private static function hearbeat($message){
-
-        
-        $data = [];
         $hearbeat = new EvseHeartbeat();
-        $frame_load = [$hearbeat($message)];
-        $clientId = self::$client_id;
-        //如果是个数组,表示多个心跳，否则一个心跳
-        $evse_num = count($frame_load); //上报心跳数量
-        foreach ($frame_load as $k=>$frame_obj){
+        $frame_load = $hearbeat($message);
+        $client_id = self::$client_id;
 
-            $data[$k]['code'] = $frame_obj->code->getValue();
-            $data[$k]['num'] = $frame_obj->info->num; //枪口数量
-            $data[$k]['signal'] = $frame_obj->info->signal;
-            for($i=0;$i<$data[$k]['num'];$i++){
-                $data[$k]['current'][$i] = $frame_obj->info->data[$i]['current']->getValue() / 1000;      //电流
-                $data[$k]['left_time'][$i] = $frame_obj->info->data[$i]['left_time']->getValue();  //剩余时间
-                $status = $frame_obj->info->data[$i]['status']->getValue();                        //设备状态
-                $data[$k]['status']['worke_state'][$i] = $status['worke_state'];                   //工作状态
-                $data[$k]['status']['fuses'][$i] = $status['fuses'];                                 //熔断
-                $data[$k]['status']['overcurrent'][$i] = $status['overcurrent'];                    //过流
-                $data[$k]['status']['connect'][$i] = $status['connect'];                             //连接
-                $data[$k]['status']['full'][$i] = $status['full'];                                    //充满
+        $code = $frame_load->code->getValue(); //设备编号
+        $lock_status = $frame_load->lock_thorough->getValue(); //当前锁定通道
+        $work_status = $frame_load->work_status->getValue(); //工作状态
+        $fault_status = $frame_load->fault_status->getValue(); //故障状态
 
-                $data[$k]['status']['start_up'][$i] = $status['start_up'];                            //启动
-                $data[$k]['status']['pull_out'][$i] = $status['pull_out'];                            //拔出
-
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", evse_num:$evse_num, signal:".$data[$k]['signal']."
-            num:".$data[$k]['num'].", code:".$data[$k]['code'].", current:".$data[$k]['current'][$i].", left_time:".$data[$k]['left_time'][$i].", worke_state:".$data[$k]['status']['worke_state'][$i]."
-             fuses:".$data[$k]['status']['fuses'][$i].", overcurrent:".$data[$k]['status']['overcurrent'][$i].", connect:".$data[$k]['status']['connect'][$i].
-                    ", full:".$data[$k]['status']['full'][$i]."start_up:".$data[$k]['status']['start_up'][$i]."pull_out".$data[$k]['status']['pull_out'][$i]."" . date('Y-m-d H:i:s', time()));
-            }
-
+        if(empty($code)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 接收心跳,桩编号为空 " . Carbon::now());
         }
-
+        //记录对应某个桩的log
+        $file_data = " 心跳,桩上报时间 date: ".Carbon::now().PHP_EOL." 心跳,桩上报参数 code:$code, lock_status:$lock_status, work_status:$work_status, fault_status:$fault_status ".PHP_EOL." 心跳,桩上报帧 frame: ".bin2hex($message);
+        $redis_data = "心跳,桩上报".'-'.json_encode(array('code'=>$code,'lock_status'=>$lock_status, 'work_status'=>$work_status, 'fault_status'=>$fault_status)).'-'.bin2hex($message).'-'.Carbon::now().'+';
+        self::record_log($code, $file_data, $redis_data);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " code:$code, lock_status:$lock_status, work_status:$work_status, fault_status:$fault_status " . Carbon::now());
 
         //处理签到上报数据并应答桩HeartBeatReport
-        $job = (new HeartBeatReport($data, $evse_num, $clientId))
+        $job = (new HeartBeatReport($code, $client_id, $lock_status, $work_status, $fault_status))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
-
-
     }
 
     //桩自动停止

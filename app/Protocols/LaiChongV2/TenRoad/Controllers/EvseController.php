@@ -68,55 +68,48 @@ class EvseController extends Controller
 
     }
 
-    public function checkHeartbeat($id){
-
-        Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 心跳监控START id : $id ");
-
+    public function checkHeartbeat($id)
+    {
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳监控START id : $id ");
         //查询当前桩的心跳周期
-        $hearbeat = Evse::where('id',$id)->first();
-        //$heartbeatCycle = $hearbeat->heartbeat_cycle * 60;
-        Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 当前时间: ".time()."上次心跳时间:".strtotime($hearbeat->last_update_status_time)."心跳周期:".$hearbeat->heartbeat_cycle);
+        $hearbeat = Evse::where('id', $id)->first();
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 当前时间: " . time() . "上次心跳时间:" . strtotime($hearbeat->last_update_status_time) . "心跳周期:" . $hearbeat->heartbeat_cycle);
         //如果心跳没在心跳周期时间上报,则判断掉线
-        if((time() - strtotime($hearbeat->last_update_status_time)) < 180){ //$hearbeat->heartbeat_cycle * 60
+        if ((time() - strtotime($hearbeat->last_update_status_time)) < 180) { //$hearbeat->heartbeat_cycle * 60
             $hearbeat->online_status = 1;
             $hearbeat->save();
-            Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 心跳正常, END ");
-        }else{
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳正常, END ");
+        } else {
             //告诉monitor掉线
-            Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 断线 code: ".$hearbeat->code);
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 断线 code: " . $hearbeat->code);
             $code = [$hearbeat->code];
             $monitorCodes = MonitorServer::offline($code);
-            if(empty($monitorCodes)){
-                Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 断线调用monitor失败, END ");
+            if (empty($monitorCodes)) {
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 断线调用monitor失败, END ");
             }
             //更新桩状态字段,充电桩掉线
             $hearbeat->online_status = 0;
             $hearbeat->save();
-            Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " END 心跳超时");
-
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " END 心跳超时");
         }
-
-
         return true;
-
-
     }
 
 
+    public function checkSetParameter($parameterName, $parameter, $code)
+    {
 
-    public function checkSetParameter($parameterName, $parameter, $code){
-
-        Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数检查start ");
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数检查start ");
         //通过code找到设置参数结果
-        $evse = Evse::where('code',$code)->first();
+        $evse = Evse::where('code', $code)->first();
         $requestResult = $evse->request_result;
         $requestResult = json_decode($requestResult);
         //如果是设置域名和端口号
-        if(is_array($parameterName) && is_array($parameter)){
+        if (is_array($parameterName) && is_array($parameter)) {
             $p1 = $parameterName[0];
             $p2 = $parameterName[1];
-            if($requestResult->$p1 == 1 && $requestResult->$p2 == 1){
-                Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数成功 ");
+            if ($requestResult->$p1 == 1 && $requestResult->$p2 == 1) {
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数成功 ");
                 $evse->$p1 = $parameter[0];
                 $evse->$p2 = $parameter[1];
                 $requestResult->$p1 = 0;
@@ -126,10 +119,10 @@ class EvseController extends Controller
 
                 //记录修改日志
                 $log = ModifyInfoLog::create([
-                    'before_info'=>$evse->$p1.' '.$evse->$p2,
-                    'after_info'=>$parameter[0].' '.$parameter[1],
-                    'remarks'=>'修改内容为域名和端口',
-                    'modify_time'=>date('Y-m-d H:i:s', time())
+                    'before_info' => $evse->$p1 . ' ' . $evse->$p2,
+                    'after_info' => $parameter[0] . ' ' . $parameter[1],
+                    'remarks' => '修改内容为域名和端口',
+                    'modify_time' => date('Y-m-d H:i:s', time())
                 ]);
                 Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 域名端口改变,记录日志结果 $log ");
 
@@ -141,11 +134,11 @@ class EvseController extends Controller
         }
 
         //设置参数
-        if(is_array($parameter)){
-            $evse = Evse::where('code',$code)->first();
+        if (is_array($parameter)) {
+            $evse = Evse::where('code', $code)->first();
             //如果收到响应
-            if($requestResult->$parameterName == 1){
-                Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数成功 ");
+            if ($requestResult->$parameterName == 1) {
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数成功 ");
                 $data = json_encode($parameter);
                 $evse->parameter = $data;
                 $requestResult->$parameterName = 0;
@@ -160,8 +153,8 @@ class EvseController extends Controller
         }
 
         //如果设置成功,更新响应参数
-        if($requestResult->$parameterName == 1){
-            Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数成功 ");
+        if ($requestResult->$parameterName == 1) {
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数成功 ");
             $oldParameter = $evse->$parameterName;
             $evse->$parameterName = $parameter;
             $requestResult->$parameterName = 0;
@@ -170,10 +163,10 @@ class EvseController extends Controller
 
             //记录修改日志
             $log = ModifyInfoLog::create([
-                'before_info'=>$oldParameter,
-                'after_info'=>$parameter,
-                'remarks'=>'修改内容为心跳周期',
-                'modify_time'=>date('Y-m-d H:i:s', time())
+                'before_info' => $oldParameter,
+                'after_info' => $parameter,
+                'remarks' => '修改内容为心跳周期',
+                'modify_time' => date('Y-m-d H:i:s', time())
             ]);
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳改变,记录日志结果 $log ");
 
@@ -187,9 +180,10 @@ class EvseController extends Controller
 
 
     //检测启动续费停止是否收到桩响应
-    public function response($code, $orderId, $type, $workeId, $frame){
+    public function response($code, $orderId, $type, $workeId, $frame)
+    {
 
-        Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费start ");
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费start ");
 
         $condition = [
             ['code', '=', $code],
@@ -197,40 +191,40 @@ class EvseController extends Controller
         ];
 
         $port = Port::where($condition)->first();//firstOrFail
-        if(empty($port)){
-            Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费没有找到相应数据 code:$code, orderId:$orderId ");
+        if (empty($port)) {
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费没有找到相应数据 code:$code, orderId:$orderId ");
             return false;
         }
 
         $isResponse = $port->is_response;
-        if($isResponse){
-            Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 收到桩响应 ");
+        if ($isResponse) {
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 收到桩响应 ");
             return true;
-        }else{
+        } else {
 
             //查询下发次数,如果小于三次则继续下发,否则停止下发,调用monitor接口
             $operationTime = $port->operation_time;
-            if($operationTime < 3){
-                $sendResult  = EventsApi::sendMsg($workeId,base64_decode($frame));
+            if ($operationTime < 3) {
+                $sendResult = EventsApi::sendMsg($workeId, base64_decode($frame));
                 //下发次数加1
                 $port->operation_time = ++$operationTime;
                 $port->save();
-                Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费，未达到3次,继续下发, 第 $operationTime 次下发, 下发结果sendResult:$sendResult ");
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费，未达到3次,继续下发, 第 $operationTime 次下发, 下发结果sendResult:$sendResult ");
 
                 $job = (new CheckResponse($code, $orderId, $type, $workeId, $frame))
                     ->onQueue(env("APP_KEY"))
                     ->delay(Carbon::now()->addSeconds(3));
                 dispatch($job);
-            }else{
+            } else {
                 //调用monitor接口,启动续费或者退费失败
-                if($type == 1){ //启动
-                    Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 启动未收到响应 ");
+                if ($type == 1) { //启动
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动未收到响应 ");
 
-                }elseif($type == 2){ //续费
-                    Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 续费未收到响应 ");
+                } elseif ($type == 2) { //续费
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费未收到响应 ");
 
-                }elseif($type == 3){ //停止
-                    Log::debug(__NAMESPACE__ .  "/" . __CLASS__."/" . __FUNCTION__ . "@" . __LINE__ . " 停止未收到响应 ");
+                } elseif ($type == 3) { //停止
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止未收到响应 ");
 
                 }
             }
@@ -243,51 +237,52 @@ class EvseController extends Controller
     //***************************************桩主动上报***********************************//
 
     //签到
-    public function signReport($code, $num, $worker_id, $version){
+    public function signReport($code, $num, $worker_id, $version)
+    {
         //枪口列表
         $portArr = [];
         Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,处理数据start ");
         //桩是否存在
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        $evse = Evse::where("code", $code)->first(); //firstOrFail
         //找不到添加桩和枪
-        if(empty($evse)){
-            for ($i=0;$i<$num;$i++){
+        if (empty($evse)) {
+            for ($i = 0; $i < $num; $i++) {
                 $portArr[] = $i;
             }
             //从moniotr获取monitorCode
             $monitorCodes = MonitorServer::deviceOnline($code, $num, $portArr, $version);
-            if(!is_array($monitorCodes)){
+            if (!is_array($monitorCodes)) {
                 Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,添加桩和枪,调用monitor失败 code:$code ");
                 return false;
             }
             //初始化request_result
-            $data = ['heartbeat_cycle'=>0, 'port_number'=>0, 'threshold'=>0, 'parameter'=>0, 'device_id'=>0];
+            $data = ['heartbeat_cycle' => 0, 'port_number' => 0, 'threshold' => 0, 'parameter' => 0, 'device_id' => 0];
             $data = json_encode($data);
             $evse = Evse::create([
-                'code'=>$code,
-                'worker_id'=>$worker_id,//$this->workerId,
-                'protocol_name'=> \Wormhole\Protocols\LaiChongV2\TenRoad\Protocol::NAME,
-                'channel_num'=>$num,
-                'online_status'=>1,
-                'last_update_status_time'=>Carbon::now(),
-                'request_result'=>$data
+                'code' => $code,
+                'worker_id' => $worker_id,//$this->workerId,
+                'protocol_name' => \Wormhole\Protocols\LaiChongV2\TenRoad\Protocol::NAME,
+                'channel_num' => $num,
+                'online_status' => 1,
+                'last_update_status_time' => Carbon::now(),
+                'request_result' => $data
             ]);
             //如果创建桩失败,返回false
-            if(empty($evse)){
+            if (empty($evse)) {
                 Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 创建桩失败,code:$code ");
                 return false;
             }
 
             //添加枪信息
-            for($i=0;$i<$num;$i++){
+            for ($i = 0; $i < $num; $i++) {
                 $port = Port::create([
-                    'evse_id'=>$evse->id,
-                    'code'=>$code,
-                    'monitor_code'=>$monitorCodes[$i],
-                    'port_number'=>$i
+                    'evse_id' => $evse->id,
+                    'code' => $code,
+                    'monitor_code' => $monitorCodes[$i],
+                    'port_number' => $i
                 ]);
                 //如果通道创建失败,返回false
-                if(empty($port)){
+                if (empty($port)) {
                     Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 创建通道 $i 失败 ");
                     return false;
                 }
@@ -303,7 +298,7 @@ class EvseController extends Controller
         $evse->channel_num = $num;
         $evse->online_status = 1; //在线
         $res = $evse->save();
-        if(empty($res)){
+        if (empty($res)) {
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,更新数据失败 ");
             return false;
         }
@@ -315,164 +310,127 @@ class EvseController extends Controller
         $monitorCodes = MonitorServer::deviceOnline($code, $num, array(), $version);
 
         //如果调用monitor成功,应答充电桩
-        if($monitorCodes){
+        if ($monitorCodes) {
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,调用monitor成功 ");
             return true;
-        }else{
+        } else {
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,调用monitor失败 ");
             return false;
         }
     }
 
     //应答充电桩
-    public function signResponse($code, $worker_id){
+    public function signResponse($code, $worker_id)
+    {
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到应答桩start " . Carbon::now());
         $sign = new ServerSign();
         $sign->code($code);
         $sign->result(1);
         $frame = strval($sign);
-        $sendResult  = EventsApi::sendMsg($worker_id,$frame);
+        $sendResult = EventsApi::sendMsg($worker_id, $frame);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到响应充电桩结果,sendResult:$sendResult " . Carbon::now());
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,响应充电桩 结果 $sendResult, 帧frame: ".bin2hex($frame) );
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 签到,响应充电桩 结果 $sendResult, 帧frame: " . bin2hex($frame));
     }
 
-
-    public function heartBeatReport($dataArray, $evse_num, $clientID){
+    //桩上报心跳处理
+    public function heartBeatReport($code, $client_id, $lock_status, $work_status, $fault_status)
+    {
 
         //如果桩不在线,先做上线处理
-        Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳start ");
-        $status = [];
-        foreach ($dataArray as $k=>$data) {
+        Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳业务处理start ");
 
-            //查找是否有此桩
-            $evse = Evse::where("code", $data['code'])->first();
-            if(empty($evse)){
-                Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,桩编号不存在 code: ".$data['code']);
-                return false;
+        //查找是否有此桩
+        $evse = Evse::where("code", $code)->first();
+        if (empty($evse)) {
+            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,桩编号不存在 code: $code");
+            return false;
+        }
+        //如果有此桩
+        if (!empty($evse)) {
+            //更新此桩数据
+            $evse->last_update_status_time = Carbon::now(); //最后更新充电状态时间
+            $evse->online_status = 1; //是否离线 0/离线,1/在线
+            $evse_res = $evse->save();
+            if (empty($evse_res)) {
+                Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,更新桩数据失败 code: $code");
             }
-            if (!empty($evse)) {
-
-                //更新此桩数据
-                //$evse->worker_id = $evse->workerId;
-                $evse->channel_num = $data['num'];
-                $evse->signal_intensity = $data['signal'] > 31 ? 0 : $data['signal']; //如果信号强度大于31,则信号故障,则设置为0
-                $evse->last_update_status_time = Carbon::now();
-                $evse_res = $evse->save();
-                if(empty($evse_res)){
-                    Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,更新桩数据失败 code:".$data['code']);
-                }
-
-            }
-
-            ////monitor那边1是空闲，2是充电
-            $statu = array(1,2);
-            //更新枪数据
-            for ($i = 0; $i < $data['num']; $i++) {
-                $condition = [
-                    ['code', '=', $data['code']],
-                    ['port_number', '=', $i]
-                ];
-                $status[$i]['device_no'] = $data['code'];
-                $status[$i]['gun_num'] = $i;
-                $status[$i]['work_status'] = $statu[$data['status']['worke_state'][$i]];
-                $port = Port::where($condition)->first();
-                if (!empty($port)) {
-                    //如果状态上报的是空闲，表中的状态不是空闲则更改为空闲状态
-                    if($data['status']['worke_state'][$i] == 0 && $port->work_status != 0){
-                        $port->work_status = $data['status']['worke_state'][$i];
-                        $status[$i]['work_status'] = $statu[$data['status']['worke_state'][$i]];
-                    }
-
-                    //如果状态上报的是充电中，表中的状态不是充电则更改为充电状态
-//                    if($data['status']['worke_state'][$i] == 1 && $port->work_status != 2){
-//                        $port->work_status = $data['status']['worke_state'][$i];
-//                        $status[$i]['work_status'] = $statu[$data['status']['worke_state'][$i]];
-//                    }
-
-                    //判断是否故障
-                    if($data['status']['fuses'][$i] == 1 || $data['status']['overcurrent'][$i] == 1){
-                        //心跳工作状态故障
-                        $status[$i]['work_status'] = 3;//故障
-
-                        //如果故障,判断是否已经给过monitor
-                        $fault = Redis::get($data['code'].':fault');
-                        if($fault != 1){
-                            Redis::set($data['code'].':fault',1);
-                            MonitorServer::add_device_error_log($data['code'], $i, 3);//3为故障
-                        }
-
-                    }else{
-                        //信号强度恢复正常,判断是否已经给过monitor
-                        $fault = Redis::get($data['code'].':fault');
-                        if($fault != 2){
-                            Redis::set($data['code'].':fault',2);
-                            MonitorServer::add_device_error_log($data['code'], $i, 1); //1为空闲
-                        }
-
-                    }
-
-
-                    $port->is_fuse = $data['status']['fuses'][$i];
-                    $port->is_flow = $data['status']['overcurrent'][$i];
-                    $port->is_connect = $data['status']['connect'][$i];
-                    $port->is_full = $data['status']['full'][$i];
-                    $port->start_up = $data['status']['start_up'][$i];
-                    $port->pull_out = $data['status']['pull_out'][$i];
-                    $port->left_time = $status[$i]['remaining_time'] = $data['left_time'][$i];
-                    $port->current = $status[$i]['current'] = $data['current'][$i];
-                    $port_res = $port->save();
-                    if(empty($port_res)){
-                        Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,更新枪数据失败 code:".$data['code']."port: $i ");
-                    }
-                }
-            }
-
-            //心跳应答
-            $this->hearbeatAnswer($dataArray, $evse_num, $clientID);
-
-            //调用monitor接口
-            $monitorCodes = MonitorServer::hearbeat($status);
-            if($monitorCodes){
-                Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳调用monitor成功 ");
-            }else{
-                Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳调用monitor失败 ");
-            }
-
-            //心跳周期
-            $heartbeatCycle = $evse->heartbeat_cycle * 60 + 60;
-            //使用队列,检查心跳
-            $job = (new CheckHeartbeat($port->evse_id))
-                ->onQueue(env("APP_KEY"))
-                ->delay(Carbon::now()->addSeconds($heartbeatCycle));
-            dispatch($job);
-
-
-
-
         }
 
+        ////monitor那边1是空闲，2是充电
+        $statu = array(1, 2);
+        //更新枪数据
+        for ($i = 0; $i < 10; $i++) {
+            $condition = [
+                ['code', '=', $code],
+                ['port_number', '=', $i]
+            ];
+            $status[$i]['device_no'] = $code;
+            $status[$i]['gun_num'] = $i;
+            $status[$i]['work_status'] = $statu[$work_status[$i]];
+            $port = Port::where($condition)->first();
+            if (!empty($port)) {
+                //如果状态上报的是空闲，表中的状态不是空闲则更改为空闲状态
+                if ($work_status[$i] == 0 && $port->work_status != 0) {
+                    $port->work_status = $work_status[$i];
+                    $status[$i]['work_status'] = $statu[$work_status[$i]];
+                }
 
+                //判断是否故障
+                if ($fault_status[$i] == 1) {
+                    //心跳工作状态故障
+                    $status[$i]['work_status'] = 3;//故障
+                    //如果故障,判断是否已经给过monitor
+                    $fault = Redis::get($code.$i . ':fault');
+                    if ($fault != 1) {
+                        Redis::set($code.$i . ':fault', 1);
+                        MonitorServer::add_device_error_log($code, $i, 3);//3为故障
+                    }
+                } else {
+                    //枪口故障恢复正常,判断是否已经给过monitor
+                    $fault = Redis::get($code.$i . ':fault');
+                    if ($fault != 2) {
+                        Redis::set($code.$i . ':fault', 2);
+                        MonitorServer::add_device_error_log($code, $i, 1); //1为空闲
+                    }
+                }
 
+                $port_res = $port->save();
+                if (empty($port_res)) {
+                    Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,更新枪数据失败 code:$code, port: $i ");
+                }
+            }
+        }
+
+        //心跳应答
+        $res = $this->hearbeatAnswer($code, $client_id);
+
+        //调用monitor接口
+        $monitorCodes = MonitorServer::hearbeat($status);
+        if ($monitorCodes) {
+            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳调用monitor成功 ");
+        } else {
+            Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳调用monitor失败 ");
+        }
+
+        //心跳周期
+        $heartbeatCycle = $evse->heartbeat_cycle * 60 + 60;
+        //使用队列,检查心跳
+        $job = (new CheckHeartbeat($port->evse_id))
+            ->onQueue(env("APP_KEY"))
+            ->delay(Carbon::now()->addSeconds($heartbeatCycle));
+        dispatch($job);
     }
 
     //心跳应答
-    public function hearbeatAnswer($dataArray, $evse_num, $clientID){
-
-
-        $frames = '';
+    public function hearbeatAnswer($code, $client_id){
         //应答充电桩
-        for($i=0;$i<$evse_num;$i++){
-            $hearbeat = new ServerHeartbeat();
-            $hearbeat->code($dataArray[$i]['code']);
-            $frame = strval($hearbeat);
-            $frames = $frames.$frame;
-        }
-        $sendResult  = EventsApi::sendMsg($clientID,$frames);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " frames: ".bin2hex($frames));
+        $hearbeat = new ServerHeartbeat();
+        $hearbeat->code($code);
+        $frame = strval($hearbeat);
+        $sendResult  = EventsApi::sendMsg($client_id,$frame);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " frames: ".bin2hex($frame));
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 多个心跳应答桩sendResult:$sendResult " . Carbon::now());
-
-
-
+        return $sendResult;
     }
 
 
