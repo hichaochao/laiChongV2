@@ -1,13 +1,12 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
 
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
-
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -25,69 +24,25 @@ class TurnoverReport implements ShouldQueue
     protected $code;
 
     /**
-     * @var string 电表编号
+     * @var string 投币金额
      */
-    protected $meter_number;
-
-    /**
-     * @var string 时间
-     */
-    protected $date;
-
-    /**
-     * @var string 电量
-     */
-    protected $electricity;
-
-    /**
-     * @var string 总电量
-     */
-    protected $total_electricity;
-
-
-    /**
-     * @var string 投币次数
-     */
-    protected $coins_number;
-
+    protected $coin_num;
 
     /**
      * @var string 刷卡金额
      */
-    protected $card_amount;
-
-
-    /**
-     * @var string 刷卡时长
-     */
-    protected $card_time;
-
-
-
-
-
-
-
-
-
+    protected $card_cost;
 
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($code, $meter_number, $date, $electricity, $total_electricity, $coins_number, $card_amount, $card_time)
+    public function __construct($code, $coin_num, $card_cost)
     {
-
         $this->code = $code;
-        $this->meter_number = $meter_number;
-        $this->date = $date;
-        $this->electricity = $electricity;
-        $this->total_electricity = $total_electricity;
-        $this->coins_number = $coins_number;
-        $this->card_amount = $card_amount;
-        $this->card_time = $card_time;
-
+        $this->coin_num = $coin_num;
+        $this->card_cost = $card_cost;
     }
 
     /**
@@ -98,10 +53,6 @@ class TurnoverReport implements ShouldQueue
     public function handle()
     {
         $evseController = new EvseController();
-        $evseController->turnoverReport($this->code, $this->meter_number, $this->date, $this->electricity, $this->total_electricity, $this->coins_number, $this->card_amount, $this->card_time);
-
+        $evseController->getTurnover($this->code, $this->coin_num, $this->card_cost);
     }
-
-
-
 }

@@ -8,7 +8,6 @@
 
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
 
-
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -41,12 +40,9 @@ class CheckSetParameter implements ShouldQueue
      */
     public function __construct($parameterName, $parameter, $code)
     {
-
         $this->parameterName = $parameterName;
         $this->parameter = $parameter;
         $this->code = $code;
-        
-
     }
 
     /**
@@ -58,9 +54,5 @@ class CheckSetParameter implements ShouldQueue
     {
         $evseController = new EvseController();
         $evseController->checkSetParameter($this->parameterName,  $this->parameter, $this->code);
-
     }
-
-
-
 }

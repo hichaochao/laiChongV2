@@ -95,10 +95,9 @@ class EvseController extends Controller
         return true;
     }
 
-
+    //设置参数
     public function checkSetParameter($parameterName, $parameter, $code)
     {
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数检查start ");
         //通过code找到设置参数结果
         $evse = Evse::where('code', $code)->first();
@@ -125,7 +124,6 @@ class EvseController extends Controller
                     'modify_time' => date('Y-m-d H:i:s', time())
                 ]);
                 Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 域名端口改变,记录日志结果 $log ");
-
                 //设置成功调用montor
                 return true;
             }
@@ -144,7 +142,6 @@ class EvseController extends Controller
                 $requestResult->$parameterName = 0;
                 $evse->request_result = json_encode($requestResult);
                 $evse->save();
-
                 //设置成功调用montor
                 return true;
             }
@@ -169,13 +166,11 @@ class EvseController extends Controller
                 'modify_time' => date('Y-m-d H:i:s', time())
             ]);
             Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳改变,记录日志结果 $log ");
-
             //设置成功调用montor
             return true;
         }
         //设置失败调用montor
         return false;
-
     }
 
 
@@ -335,7 +330,6 @@ class EvseController extends Controller
     //桩上报心跳处理
     public function heartBeatReport($code, $client_id, $lock_status, $work_status, $fault_status)
     {
-
         //如果桩不在线,先做上线处理
         Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳业务处理start ");
 
@@ -373,6 +367,10 @@ class EvseController extends Controller
                 if ($work_status[$i] == 0 && $port->work_status != 0) {
                     $port->work_status = $work_status[$i];
                     $status[$i]['work_status'] = $statu[$work_status[$i]];
+                    //上报的是空闲状态,表中状态是充电中则表示是自动停止
+//                    $job = (new AutoStopReport($code, $order_number, $start_type, $left_time, $stop_reason))
+//                        ->onQueue(env("APP_KEY"));
+//                    dispatch($job);
                 }
 
                 //判断是否故障
@@ -393,7 +391,7 @@ class EvseController extends Controller
                         MonitorServer::add_device_error_log($code, $i, 1); //1为空闲
                     }
                 }
-
+                //更新枪表字段
                 $port_res = $port->save();
                 if (empty($port_res)) {
                     Log::debug(__CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳,处理数据,更新枪数据失败 code:$code, port: $i ");
@@ -538,136 +536,198 @@ class EvseController extends Controller
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止,未清空数据 " . Carbon::now());
             return false;
         }
-
-
-
-
         //停止成功,调用monitor接口
         $job = (new AutoStopCharge($monitorOrderId, $left_time, $chargeArgs))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
-
         return true;
-
     }
 
+
+
+    //营业额查询
+    public function getTurnover($code, $coin_num, $card_cost){
+        //前一天
+        $frontDate = date("Y-m-d",strtotime("-1 day"));
+        $condition = [
+            ['code', '=', $code],
+            ['stat_date', '=', $frontDate]
+        ];
+        //如果收到数据则更新
+        if( !empty($code) &&  is_numeric($coin_num) &&  is_numeric($card_cost)){
+            //获取前一天的数据
+            $turnover = Turnover::where($condition)->first();
+            //如果有则直接更新,如果没有则创建
+            if(!empty($turnover)){
+                $turnover->coin_number = $coin_num;
+                $turnover->card_free = $card_cost;
+                $res = $turnover->save();
+                if(empty($res)){
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询更新失败 res:$res ");
+                }
+            }else{
+                $res = Turnover::create([
+                    'code'=>$code,
+                    'coin_number'=>$coin_num,
+                    'card_free'=>$card_cost,
+                    'stat_date'=>$frontDate
+                ]);
+                if(empty($res)){
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询创建失败 res:$res ");
+                }
+            }
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询成功 res:$res ");
+
+            //计算出当天使用电量,当天投币金额,当天刷卡金额
+            //获得上一次上报的数据
+            $turnoverData = Turnover::where([['stat_date', '<', $frontDate],['code', $code]])
+                ->orderBy('stat_date', 'desc')
+                ->first();
+            //是否找到数据
+            $before_charged_power = 0; //前一天电量
+            $before_coin = 0; //前一天投币金额
+            $before_card = 0; //前一天刷卡金额
+            if(!empty($turnoverData)){
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,获取到上一次上报数据 ");
+                $before_charged_power = $turnoverData->charged_power;
+                $before_coin = $turnoverData->coin_number;
+                $before_card = $turnoverData->card_free;
+            }
+
+            //当天的数据减去之前的数据
+            $charged_power = $turnover->charged_power; //当天总电量
+            $current_charged_power = ($charged_power - $before_charged_power);//当天总电量减去前一天总电量
+            $current_coin = ($coin_num - $before_coin);//当天投币金额减去前一天投币金额
+            $current_card = ($card_cost - $before_card);//当天刷卡金额减去前一天刷卡金额
+
+            //将数据存到数据库
+            $turnover->current_charged_power = $current_charged_power;
+            $turnover->current_coin_number = $current_coin;
+            $turnover->current_card_free = $current_card;
+            $res = $turnover->save();
+
+            //调用monitor
+
+        }
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询数据异常 ");
+        return false;
+    }
 
 
     //日结
-    public function turnoverReport($code, $meter_number, $date_info, $electricity, $total_electricity, $coins_number, $card_amount, $card_time){
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结处理数据start ");
-        //将数组转换为字符串
-        $electricity_json = json_encode($electricity);
-
-
-        //处理日期
-        //$frontDate = date("Y-m-d",strtotime("-1 day"));
-        $date = '20'.$date_info;
-        $date = date('Y-m-d', strtotime($date));
-
-        //获得上一次上报的数据
-        $turnoverData = Turnover::where([['stat_date', '<', $date],['code', $code]])
-            ->orderBy('stat_date', 'desc')
-            ->first();
-        //是否找到数据
-        $coinNumber = 0;
-        $cardFree = 0;
-        $cardTime = 0;
-        if(!empty($turnoverData)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,获取到上一次上报数据 ");
-            $coinNumber = $turnoverData->coin_number;
-            $cardFree = $turnoverData->card_free;
-            $cardTime = $turnoverData->card_time;
-        }
-
-        //是否有当前上报日期数据
-        $condition = [
-            ['code', '=', $code],
-            ['stat_date', '=', $date]
-        ];
-        $turnover = Turnover::where($condition)->first();
-
-        //如果是空则创建,否则更新
-        if(empty($turnover)){
-            $result = Turnover::create([
-                'code'=>$code,
-                'electricity_meter_number'=>$meter_number,
-                'stat_date'=>$date,
-                'charged_power_time'=>$electricity_json,
-                'charged_power'=>$total_electricity,
-                'coin_number'=>$coins_number - $coinNumber,
-                'card_free'=>$card_amount - $cardFree,
-                'card_time'=>$card_time - $cardTime
-
-            ]);
-            //如果创建失败,返回false
-            if(empty($result)){
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,创建数据失败 " . date('Y-m-d H:i:s', time()));
-                return false;
-            }
-
-
-        }else{
-            $turnover->electricity_meter_number = $meter_number;
-            $turnover->stat_date = $date;
-            $turnover->charged_power_time = $electricity_json;
-            $turnover->charged_power = $total_electricity;
-            $turnover->coin_number = $coins_number - $coinNumber;
-            $turnover->card_free = $card_amount - $cardFree;
-            $turnover->card_time = $card_time - $cardTime;
-
-            $result = $turnover->save();
-        }
-
-
-        //如果更新失败,返回false
-        if(empty($result)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,更新数据失败 " . date('Y-m-d H:i:s', time()));
-            return false;
-        }
-
-        //计算出一天的电量
-        $electricity_num = 0;
-        foreach ($electricity as $v){
-
-            $electricity_num = $v + $electricity_num;
-
-        }
-
-        //获取workeId
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        $workeId = $evse->worker_id;
-
-        //如果更新数据成功,应答充电桩
-        $time = date('YmdHis', time());
-        $time = substr($time, 2);
-        $report = new ServerReport();
-        $report->code(intval($code));
-        $report->date(intval($time));
-        $report->receive_date(intval($date_info));
-        $report->result(1);
-        $frame = strval($report);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
-        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            frame:".bin2hex($frame)."
-            日结应答充电桩结果:$sendResult " . Carbon::now());
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,应答桩 frame: ".bin2hex($frame) );
-
-
-
-
-        //调用monitor,如果monitor返回失败则一直上报
-        //停止成功,调用monitor接口
-        $job = (new Report($code, $coins_number, $card_amount, $electricity_num, $total_electricity, $date))
-            ->onQueue(env("APP_KEY"));
-        dispatch($job);
-
-
-    }
+//    public function turnoverReport($code, $meter_number, $date_info, $electricity, $total_electricity, $coins_number, $card_amount, $card_time){
+//
+//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结处理数据start ");
+//        //将数组转换为字符串
+//        $electricity_json = json_encode($electricity);
+//
+//
+//        //处理日期
+//        //$frontDate = date("Y-m-d",strtotime("-1 day"));
+//        $date = '20'.$date_info;
+//        $date = date('Y-m-d', strtotime($date));
+//
+//        //获得上一次上报的数据
+//        $turnoverData = Turnover::where([['stat_date', '<', $date],['code', $code]])
+//            ->orderBy('stat_date', 'desc')
+//            ->first();
+//        //是否找到数据
+//        $coinNumber = 0;
+//        $cardFree = 0;
+//        $cardTime = 0;
+//        if(!empty($turnoverData)){
+//            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,获取到上一次上报数据 ");
+//            $coinNumber = $turnoverData->coin_number;
+//            $cardFree = $turnoverData->card_free;
+//            $cardTime = $turnoverData->card_time;
+//        }
+//
+//        //是否有当前上报日期数据
+//        $condition = [
+//            ['code', '=', $code],
+//            ['stat_date', '=', $date]
+//        ];
+//        $turnover = Turnover::where($condition)->first();
+//
+//        //如果是空则创建,否则更新
+//        if(empty($turnover)){
+//            $result = Turnover::create([
+//                'code'=>$code,
+//                'electricity_meter_number'=>$meter_number,
+//                'stat_date'=>$date,
+//                'charged_power_time'=>$electricity_json,
+//                'charged_power'=>$total_electricity,
+//                'coin_number'=>$coins_number - $coinNumber,
+//                'card_free'=>$card_amount - $cardFree,
+//                'card_time'=>$card_time - $cardTime
+//
+//            ]);
+//            //如果创建失败,返回false
+//            if(empty($result)){
+//                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,创建数据失败 " . date('Y-m-d H:i:s', time()));
+//                return false;
+//            }
+//
+//
+//        }else{
+//            $turnover->electricity_meter_number = $meter_number;
+//            $turnover->stat_date = $date;
+//            $turnover->charged_power_time = $electricity_json;
+//            $turnover->charged_power = $total_electricity;
+//            $turnover->coin_number = $coins_number - $coinNumber;
+//            $turnover->card_free = $card_amount - $cardFree;
+//            $turnover->card_time = $card_time - $cardTime;
+//
+//            $result = $turnover->save();
+//        }
+//
+//
+//        //如果更新失败,返回false
+//        if(empty($result)){
+//            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,更新数据失败 " . date('Y-m-d H:i:s', time()));
+//            return false;
+//        }
+//
+//        //计算出一天的电量
+//        $electricity_num = 0;
+//        foreach ($electricity as $v){
+//
+//            $electricity_num = $v + $electricity_num;
+//
+//        }
+//
+//        //获取workeId
+//        $evse = Evse::where("code",$code)->first(); //firstOrFail
+//        $workeId = $evse->worker_id;
+//
+//        //如果更新数据成功,应答充电桩
+//        $time = date('YmdHis', time());
+//        $time = substr($time, 2);
+//        $report = new ServerReport();
+//        $report->code(intval($code));
+//        $report->date(intval($time));
+//        $report->receive_date(intval($date_info));
+//        $report->result(1);
+//        $frame = strval($report);
+//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
+//        $sendResult  = EventsApi::sendMsg($workeId,$frame);
+//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
+//            frame:".bin2hex($frame)."
+//            日结应答充电桩结果:$sendResult " . Carbon::now());
+//
+//        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,应答桩 frame: ".bin2hex($frame) );
+//
+//
+//
+//
+//        //调用monitor,如果monitor返回失败则一直上报
+//        //停止成功,调用monitor接口
+//        $job = (new Report($code, $coins_number, $card_amount, $electricity_num, $total_electricity, $date))
+//            ->onQueue(env("APP_KEY"));
+//        dispatch($job);
+//
+//
+//    }
 
 
 

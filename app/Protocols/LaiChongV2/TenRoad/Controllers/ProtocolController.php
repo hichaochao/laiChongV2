@@ -633,89 +633,86 @@ class ProtocolController
     
     
     //日结
-    public function report($code, $meter_number, $date, $electricity, $total_electricity, $coins_number, $card_amount, $card_time){
-
-        //处理日期
-        //$frontDate = date("Y-m-d",strtotime("-1 day"));
-        $date = '20'.$date;
-        $date = date('Y-m-d', strtotime($date));
-
-        //获得上一次上报的数据
-        $turnoverData = Turnover::where([['stat_date', '<', $date],['code', $code]])
-            ->orderBy('stat_date', 'desc')
-            ->first();
-        //是否找到数据
-        $coinNumber = 0;
-        $cardFree = 0;
-        $cardTime = 0;
-        if(!empty($turnoverData)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,获取到上一次上报数据 ");
-            $coinNumber = $turnoverData->coin_number;
-            $cardFree = $turnoverData->card_free;
-            $cardTime = $turnoverData->card_time;
-        }
-
-        //是否有当前上报日期数据
-        $condition = [
-            ['code', '=', $code],
-            ['stat_date', '=', $date]
-        ];
-        $turnover = Turnover::where($condition)->first();
-
-        //如果是空则创建,否则更新
-        if(empty($turnover)){
-            $result = Turnover::create([
-                'code'=>$code,
-                'electricity_meter_number'=>$meter_number,
-                'stat_date'=>$date,
-                'charged_power_time'=>$electricity,
-                'charged_power'=>$total_electricity,
-                'coin_number'=>$coins_number - $coinNumber,
-                'card_free'=>$card_amount - $cardFree,
-                'card_time'=>$card_time - $cardTime
-
-            ]);
-            //如果创建失败,返回false
-            if(empty($result)){
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,创建数据失败 " . Carbon::now());
-                return false;
-            }
-            return true;
-
-        }
-        $turnover->electricity_meter_number = $meter_number;
-        $turnover->stat_date = $date;
-        $turnover->charged_power_time = $electricity;
-        $turnover->charged_power = $total_electricity;
-        $turnover->coin_number = $coins_number - $coinNumber;
-        $turnover->card_free = $card_amount - $cardFree;
-        $turnover->card_time = $card_time - $cardTime;
-
-        $result = $turnover->save();
-
-        //如果更新失败,返回false
-        if(empty($result)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,更新数据失败 " . Carbon::now());
-            return false;
-        }
-
-        //调用monitor接口
-
-        return true;
-
-    }
-    
-    
+//    public function report($code, $meter_number, $date, $electricity, $total_electricity, $coins_number, $card_amount, $card_time){
+//
+//        //处理日期
+//        //$frontDate = date("Y-m-d",strtotime("-1 day"));
+//        $date = '20'.$date;
+//        $date = date('Y-m-d', strtotime($date));
+//
+//        //获得上一次上报的数据
+//        $turnoverData = Turnover::where([['stat_date', '<', $date],['code', $code]])
+//            ->orderBy('stat_date', 'desc')
+//            ->first();
+//        //是否找到数据
+//        $coinNumber = 0;
+//        $cardFree = 0;
+//        $cardTime = 0;
+//        if(!empty($turnoverData)){
+//            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,获取到上一次上报数据 ");
+//            $coinNumber = $turnoverData->coin_number;
+//            $cardFree = $turnoverData->card_free;
+//            $cardTime = $turnoverData->card_time;
+//        }
+//
+//        //是否有当前上报日期数据
+//        $condition = [
+//            ['code', '=', $code],
+//            ['stat_date', '=', $date]
+//        ];
+//        $turnover = Turnover::where($condition)->first();
+//
+//        //如果是空则创建,否则更新
+//        if(empty($turnover)){
+//            $result = Turnover::create([
+//                'code'=>$code,
+//                'electricity_meter_number'=>$meter_number,
+//                'stat_date'=>$date,
+//                'charged_power_time'=>$electricity,
+//                'charged_power'=>$total_electricity,
+//                'coin_number'=>$coins_number - $coinNumber,
+//                'card_free'=>$card_amount - $cardFree,
+//                'card_time'=>$card_time - $cardTime
+//
+//            ]);
+//            //如果创建失败,返回false
+//            if(empty($result)){
+//                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,创建数据失败 " . Carbon::now());
+//                return false;
+//            }
+//            return true;
+//
+//        }
+//        $turnover->electricity_meter_number = $meter_number;
+//        $turnover->stat_date = $date;
+//        $turnover->charged_power_time = $electricity;
+//        $turnover->charged_power = $total_electricity;
+//        $turnover->coin_number = $coins_number - $coinNumber;
+//        $turnover->card_free = $card_amount - $cardFree;
+//        $turnover->card_time = $card_time - $cardTime;
+//
+//        $result = $turnover->save();
+//
+//        //如果更新失败,返回false
+//        if(empty($result)){
+//            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,更新数据失败 " . Carbon::now());
+//            return false;
+//        }
+//
+//        //调用monitor接口
+//
+//        return true;
+//
+//    }
 
     //设置心跳周期
     public function setHearbeatCycle($code, $result){
-
         //如果设置成功,更新心跳周期结果
         if($result){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳设置响应成功 ");
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳周期设置响应成功 ");
             $evse = Evse::where("code",$code)->first(); //firstOrFail
             if(empty($evse)){
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳设置响应成功,未找到桩相应数据 ");
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳周期设置响应成功,未找到桩相应数据 ");
                 return false;
             }
             $requestResult = $evse->request_result;
@@ -723,29 +720,36 @@ class ProtocolController
             $requestResult->heartbeat_cycle = 1;
             $evse->request_result = json_encode($requestResult);
             $evse->save();
-
         }
-
-
     }
 
 
     //设置服务器参数
     public function setServerInfo($code, $result){
-
         //如果设置成功,更新域名端口结果
         if($result){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 服务器信息设置响应成功 ");
             $evse = Evse::where("code",$code)->first(); //firstOrFail
             $requestResult = $evse->request_result;
             $requestResult = json_decode($requestResult);
-            $requestResult->domain_name = 1;
             $requestResult->port_number = 1;
             $evse->request_result = json_encode($requestResult);
             $evse->save();
         }
+    }
 
-
+    //设置连接阈值
+    public function setThreshold($code, $result){
+        //如果设置成功,更新连接阈值
+        if($result){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 服务器信息设置响应成功 ");
+            $evse = Evse::where("code",$code)->first(); //firstOrFail
+            $requestResult = $evse->request_result;
+            $requestResult = json_decode($requestResult);
+            $requestResult->threshold = 1;
+            $evse->request_result = json_encode($requestResult);
+            $evse->save();
+        }
     }
 
 
@@ -799,7 +803,6 @@ class ProtocolController
 
     //查询心跳周期响应
     public function getHearbeat($code, $heartbeat_cycle){
-
         //如果设置成功,更新域名端口结果
         if($heartbeat_cycle){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询心跳周期响应成功 ");
@@ -813,37 +816,64 @@ class ProtocolController
             return true;
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询心跳周期响应成功,心跳周期有误 heartbeat_cycle:$heartbeat_cycle ");
-
-
-
     }
-    
-    
+
+    //信号强度查询强度
+    public function getSignal($code, $signal_intensity){
+        //如果设置成功,更新信号强度
+        if($signal_intensity){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 信号强度查询响应成功 ");
+            $evse = Evse::where("code",$code)->first(); //firstOrFail
+            if(empty($evse)){
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 信号强度查询响应成功,未找到相应桩数据 ");
+                return false;
+            }
+            $evse->signal_intensity = $signal_intensity;
+            $evse->save();
+            return true;
+        }
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 信号强度查询响应成功,信号强度有误 signal_intensity:$signal_intensity ");
+    }
+
+    //查询连接阈值
+    public function getThreshold($code, $threshold){
+        //如果设置成功,更新连接阈值
+        if($threshold){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询连接阈值响应成功 ");
+            $evse = Evse::where("code",$code)->first(); //firstOrFail
+            if(empty($evse)){
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询连接阈值响应成功,未找到相应桩数据 ");
+                return false;
+            }
+            $evse->threshold = $threshold;
+            $evse->save();
+            return true;
+        }
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询连接阈值响应成功,信号强度有误 threshold:$threshold ");
+    }
 
     //电表查表查询
-    public function getMeter($code, $number, $meterDegree){
-        //收到电表数据,保存到当天
-        $frontDate = date("Y-m-d",time());
+    public function getMeterSuccess($code, $meterDegree){
+        //收到电表数据,保存到前一天
+        $frontDate = date("Y-m-d",strtotime("-1 day"));
         $condition = [
             ['code', '=', $code],
             ['stat_date', '=', $frontDate]
         ];
         //如果收到数据则更新
-        if(!empty($code) && !empty($number) && is_numeric($meterDegree)){
-
+        if(!empty($code) && is_numeric($meterDegree)){
+            //找到当天的数据
             $turnover = Turnover::where($condition)->first();
             //如果没有数据则创建
             if(empty($turnover)){
                 $result = Turnover::create([
                     'code'=>$code,
-                    'electricity_meter_number'=>$number,
                     'stat_date'=>$frontDate,
                     'charged_power_time'=>'',
-                    'charged_power'=>$meterDegree / 100,
+                    'charged_power'=>$meterDegree,
                     'coin_number'=>0,
                     'card_free'=>0,
                     'card_time'=>0
-
                 ]);
                 if(empty($result)){
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 电表查询更新成功,创建失败 result:$result ");
@@ -853,46 +883,33 @@ class ProtocolController
                 return true;
             }
             //有数据则更新
-            $turnover->electricity_meter_number = $number;
-            $turnover->charged_power = $meterDegree / 100;
+            $turnover->charged_power = $meterDegree;
             $res = $turnover->save();
             if($res){
                 Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 电表查询更新成功 res:$res ");
                 return true;
             }
-
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 电表查询更新失败 ");
         return false;
     }
 
 
-
-    //营业额查询
-    public function getTurnover($code, $coin_num, $card_cost, $card_time){
-
-        //如果收到数据则更新
-        if( !empty($code) &&  is_numeric($coin_num) &&  is_numeric($card_cost) && is_numeric($card_time) ){
-
-            $turnover = Turnover::where("code",$code)->first();
-            if(empty($turnover)){
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询收到响应,未找到响应数据 ");
-                return false;
-            }
-            $turnover->coin_number = $coin_num;
-            $turnover->card_free = $card_cost;
-            $turnover->card_time = $card_time;
-            $res = $turnover->save();
-            if($res){
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询更新成功 res:$res ");
-                return true;
-            }
-
+    //查询参数
+    public function getParameter($code, $card_rate, $card_time, $coin_rate, $power_base, $channel_maximum_current, $disconnect){
+        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        if(empty($evse)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数响应成功,未找到数据 ");
+            return false;
         }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询更新失败 ");
-        return false;
-        
+        $data = ['card_rate'=>$card_rate, 'card_time'=>$card_time, 'coin_rate'=>$coin_rate, 'power_base'=>$power_base, 'channel_maximum_current'=>$channel_maximum_current, 'disconnect'=>$disconnect];
+        $info = json_encode($data);
+        $evse->parameter = $info;
+        $evse->save();
+        return true;
     }
+
+
 
 
     //查询通道状态
@@ -938,25 +955,6 @@ class ProtocolController
 
 
 
-    //查询参数
-    public function getParameter($code, $channel_maximum_current,$full_judge,$clock,$disconnect,$power_base,$coin_rate,$card_rate){
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数响应成功 start ");
-
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        if(empty($evse)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数响应成功,未找到数据 ");
-            return false;
-        }
-        $data = ['channel_maximum_current'=>$channel_maximum_current, 'full_judge'=>$full_judge, 'clock'=>$clock, 'disconnect'=>$disconnect, 'power_base'=>$power_base,
-        'coin_rate'=>$coin_rate, 'card_rate'=>$card_rate];
-        $info = json_encode($data);
-        $evse->parameter = $info;
-        $evse->save();
-
-        return true;
-
-    }
     
     
 
