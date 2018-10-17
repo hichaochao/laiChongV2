@@ -177,14 +177,11 @@ class EvseController extends Controller
     //检测启动续费停止是否收到桩响应
     public function response($code, $orderId, $type, $workeId, $frame)
     {
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费start ");
-
         $condition = [
             ['code', '=', $code],
             ['order_id', '=', $orderId]
         ];
-
         $port = Port::where($condition)->first();//firstOrFail
         if (empty($port)) {
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 监控启动续费或者退费没有找到相应数据 code:$code, orderId:$orderId ");
@@ -196,7 +193,6 @@ class EvseController extends Controller
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 收到桩响应 ");
             return true;
         } else {
-
             //查询下发次数,如果小于三次则继续下发,否则停止下发,调用monitor接口
             $operationTime = $port->operation_time;
             if ($operationTime < 3) {
@@ -214,13 +210,10 @@ class EvseController extends Controller
                 //调用monitor接口,启动续费或者退费失败
                 if ($type == 1) { //启动
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动未收到响应 ");
-
                 } elseif ($type == 2) { //续费
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费未收到响应 ");
-
                 } elseif ($type == 3) { //停止
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止未收到响应 ");
-
                 }
             }
         }
@@ -742,27 +735,24 @@ class EvseController extends Controller
     //************************************服务器下发**************************************************//
 
     //下发启动充电
-    public function startChargeSend($monitorOrderId, $monitorCode, $chargeType, $chargeArgs, $orderId){
-
+    public function startChargeSend($monitor_order_id, $monitor_code, $port_numbers, $charge_time, $order_no){
         //更新枪数据
-        $port = Port::where('monitor_code',$monitorCode)->first();//firstOrFail
+        $port = Port::where('monitor_code',$monitor_code)->first();//firstOrFail
         if(empty($port)){
             //启动失败调用monitor接口
-            $result = MonitorServer::start_charge_failed_response($monitorOrderId);
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,未找到枪 monitorCode:$monitorCode, monitorOrderId:$monitorOrderId, orderId:$orderId ");
+            $result = MonitorServer::start_charge_failed_response($monitor_order_id);
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,未找到枪,调用monitor接口 monitor_code:$monitor_code, monitor_order_id:$monitor_order_id, port_numbers:$port_numbers, charge_time:$charge_time, order_no:$order_no, result:$result ");
             return false;
         }
-        $channelNumber = $port->port_number; //枪口号
+        $port_number = $port->port_number; //枪口号
         $code = $port->code;//桩编号
-        $workeId = $port->evse->worker_id;  //workId
+        $workeId = $port->worker_id;  //workId
 
-
-        $port->monitor_order_id = $monitorOrderId;
-        $port->order_id = $orderId;
+        $port->monitor_order_id = $monitor_order_id;
+        $port->order_id = $order_no;
         $port->work_status = 1; //状态,启动中
         $port->start_time = Carbon::now();
-        $port->charge_type = $chargeType;
-        $port->charge_args = $chargeArgs;
+        $port->charge_args = $charge_time;
         $port->is_response = 0;
         $port->operation_time = 0;
         $res = $port->save();
@@ -780,23 +770,13 @@ class EvseController extends Controller
             'order_id'=>$port->order_id,
             'charge_type'=>$port->charge_type,
             'charge_args'=>$port->charge_args
-
         ]);
         //订单映射表是否创建成功
         if(empty($orderRes)){
             Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,订单映射表创建结果 res:$res ");
             return false;
         }
-
-
-        //获取workeId
-        //$evse = Evse::where("id",$evseId)->first(); //firstOrFail
-        //$serialNumber = $evse->serial_number; //流水号
-
-        //从redis中取出流水号,如果没有设置为0
-        $serialNumber = $this->serial_num($code);
-
-        //$workeId = $evse->worker_id;
+        //判断workid是否为空
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,workeId为空 ");
             return false;
@@ -805,25 +785,18 @@ class EvseController extends Controller
         //组装启动充电帧
         $startCharge = new ServerStartCharge();
         $startCharge->code(intval($code));
-        $startCharge->serial_number(intval($serialNumber));
-        $startCharge->order_number(intval($orderId));
-        $startCharge->channel_number(intval($channelNumber));
-        $startCharge->charge_mode(intval($chargeType));
-        $startCharge->charge_parameter(intval($chargeArgs));
-
-
+        $startCharge->order_number(intval($order_no));
+        $startCharge->channel_number(intval($port_numbers));
+        $startCharge->charge_time(intval($charge_time));
         //下发启动充电
         $frame = strval($startCharge);
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电下发帧,frame: ".bin2hex($frame) );
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
         $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            frame:".bin2hex($frame)."
-            启动充电结果:$sendResult " . date('Y-m-d H:i:s', time()));
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", frame:".bin2hex($frame)."启动充电结果:$sendResult " . Carbon::now());
 
         //记录log
-        $fiel_data = " 启动充电,时间: ".Carbon::now().PHP_EOL." 启动充电,参数 monitorOrderId:$monitorOrderId, monitorCode:$monitorCode, chargeType:$chargeType, chargeArgs:$chargeArgs, order_id:$orderId ".PHP_EOL."启动充电帧: $frame, 下发帧结果,sendResult: $sendResult";
-        $redis_data = "启动充电下发".json_encode(array('monitorOrderId'=>$monitorOrderId, 'monitorCode'=>$monitorCode, 'chargeType'=>$chargeType, 'chargeArgs'=>$chargeArgs, 'orderId'=>$orderId)).'-'.bin2hex($frame).'-'.Carbon::now().'+';
+        $fiel_data = " 启动充电,时间: ".Carbon::now().PHP_EOL." 启动充电,参数 monitor_order_id:$monitor_order_id, monitor_code:$monitor_code, port_numbers:$port_numbers, charge_time:$charge_time, order_no:$order_no ".PHP_EOL."启动充电帧: $frame, 下发帧结果,sendResult: $sendResult";
+        $redis_data = "启动充电下发".json_encode(array('monitor_order_id'=>$monitor_order_id, 'monitor_code'=>$monitor_code, 'port_numbers'=>$port_numbers, 'charge_time'=>$charge_time, 'order_no'=>$order_no)).'-'.bin2hex($frame).'-'.Carbon::now().'+';
         $this->record_log($code, $fiel_data, $redis_data);
 
         //类型1启动2续费3停止
@@ -833,53 +806,43 @@ class EvseController extends Controller
         //下发失败调用monitor
         if(empty($sendResult)){
             //启动失败调用monitor接口
-            $result = MonitorServer::start_charge_failed_response($monitorOrderId);
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,下发失败 monitorCode:$monitorCode, monitorOrderId:$monitorOrderId, orderId:$orderId ");
+            $result = MonitorServer::start_charge_failed_response($monitor_order_id);
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,下发失败,调用monitor结果 result:$result,  monitor_code:$monitor_code, monitor_order_id:$monitor_order_id, order_no:$order_no ");
             return false;
         }
 
         //如果3秒内没有收到响应,则重发,最多三次
-        $job = (new CheckResponse($code, $orderId, $type, $workeId, $frame))
+        $job = (new CheckResponse($code, $order_no, $type, $workeId, $frame))
             ->onQueue(env("APP_KEY"))
             ->delay(Carbon::now()->addSeconds(7));
             dispatch($job);
-
     }
 
-
     //续费下发
-    public function renewSend($monitorOrderId, $monitorCode, $chargeType, $chargeArgs, $orderId){
-
-
+    public function renewSend($monitor_order_id, $monitor_code, $port_numbers, $charge_time, $order_no){
         //通过订单号找到code和port_number
-        $port = Port::where('monitor_code',$monitorCode)->first();//firstOrFail
-
+        $port = Port::where('monitor_code',$monitor_code)->first();//firstOrFail
         if(empty($port)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,未找到枪 monitorCode:$monitorCode ");
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,未找到枪 monitorCode:$monitor_code ");
             return false;
         }
-
-        $channelNumber = $port->port_number; //枪口号
+        //$channelNumber = $port->port_number; //枪口号
         $code = $port->code;                  //桩编号
         $workeId = $port->evse->worker_id;  //workId
-
         //worke_id是空,调用monitor
         if(empty($workeId)){
             //续费未找到worke_id调用monitor接口
-            $result = MonitorServer::continue_charge_failed_response($monitorOrderId);
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,workeId为空 ");
+            $result = MonitorServer::continue_charge_failed_response($monitor_order_id);
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,workeId为空,调用monitor结果:result:$result ");
             return false;
         }
 
-
-
         //临时存储续费monitor订单号,收到续费响应后,把此单号给monitor
-        Redis::set("$code.$channelNumber",$monitorOrderId);
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " oederId:$orderId ");
+        Redis::set("$code.$port_numbers",$monitor_order_id);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " order_no:$order_no ");
 
         //存储续费值
-        $port->renew = $chargeArgs;
+        $port->renew = $charge_time;
         $port->is_response = 0;
         $port->operation_time = 0;
         $port->save();
@@ -889,45 +852,36 @@ class EvseController extends Controller
             'evse_id'=>$port->evse_id,
             'port_id'=>$port->id,
             'code'=>$port->code,
-            'monitor_order_id'=>$monitorOrderId,
+            'monitor_order_id'=>$monitor_order_id,
             'order_id'=>$port->order_id,
-            'charge_type'=>$chargeType,
-            'charge_args'=>$chargeArgs,
-
+            'charge_args'=>$charge_time,
         ]);
-
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = $this->serial_num($code);
-
 
         //组装续费帧
         $renew = new ServerRenew();
         $renew->code(intval($code));
-        $renew->serial_number(intval($serialNumber));
-        $renew->order_number(intval($orderId));
-        $renew->channel_number(intval($channelNumber));
-        $renew->charge_mode(intval($chargeType));
-        $renew->charge_parameter(intval($chargeArgs));
+        $renew->order_number(intval($order_no));
+        $renew->channel_number(intval($port_numbers));
+        $renew->charge_time(intval($charge_time));
 
         //续费下发
         $frame = strval($renew);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费下发帧,frame: ".bin2hex($frame) );
         $sendResult  = EventsApi::sendMsg($workeId,$frame);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
             frame:".bin2hex($frame)."
-            续费结果:$sendResult " . date('Y-m-d H:i:s', time()));
+            续费结果:$sendResult " . Carbon::now());
 
         //记录log
-        $fiel_data = " 续费下发参数,monitorCode:$monitorCode, monitorOrderId:$monitorOrderId, chargeType:$chargeType, chargeArgs:$chargeArgs".PHP_EOL."frame: ".bin2hex($frame).'时间:'.Carbon::now();
-        $redis_data = " 续费下发".'-'.json_encode(array('monitorOrderId'=>$monitorOrderId, 'monitorCode'=>$monitorCode, 'chargeType'=>$chargeType, 'chargeArgs'=>$chargeArgs, 'orderId'=>$orderId)).'-'.bin2hex($frame).'-'.Carbon::now().'+';
+        $fiel_data = " 续费下发参数,monitor_code:$monitor_code, monitor_order_id:$monitor_order_id, port_numbers:$port_numbers, charge_time:$charge_time, order_no:$order_no".PHP_EOL."frame: ".bin2hex($frame).'时间:'.Carbon::now();
+        $redis_data = " 续费下发".'-'.json_encode(array('monitor_order_id'=>$monitor_order_id, 'monitor_code'=>$monitor_code, 'port_numbers'=>$port_numbers, 'charge_time'=>$charge_time, 'order_no'=>$order_no)).'-'.bin2hex($frame).'-'.Carbon::now().'+';
         $this->record_log($code, $fiel_data, $redis_data);
 
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费下发帧结果,sendResult: $sendResult" );
 
         //续费下发失败调用monitor
         if(empty($sendResult)){
-            $result = MonitorServer::continue_charge_failed_response($monitorOrderId);
+            $result = MonitorServer::continue_charge_failed_response($monitor_order_id);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,下发失败 ");
         }
 
@@ -935,19 +889,16 @@ class EvseController extends Controller
         $type = 2;
         $frame =  base64_encode($frame);
         //如果3秒内没有收到响应,则重发,最多三次
-        $job = (new CheckResponse($code, $orderId, $type, $workeId, $frame))
+        $job = (new CheckResponse($code, $order_no, $type, $workeId, $frame))
             ->onQueue(env("APP_KEY"))
             ->delay(Carbon::now()->addSeconds(7));
         dispatch($job);
-
-
     }
 
 
 
     //停止充电下发
     public function stopChargeSend($monitorOrderId){
-
         //通过code和port_number找到order_id
         $port = Port::where('monitor_order_id', $monitorOrderId)->first();//firstOrFail
         //如果通过订单找不到响应数据
@@ -973,25 +924,18 @@ class EvseController extends Controller
             return false;
         }
 
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = $this->serial_num($code);
-
-
         //组装停止充电帧
         $stop = new ServerStopCharge();
         $stop->code(intval($code));
-        $stop->serial_number(intval($serialNumber));
         $stop->order_number(intval($orderId));
         $stop->channel_number(intval($channelNumber));
 
         //停止下发
         $frame = strval($stop);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
         $sendResult  = EventsApi::sendMsg($workeId,$frame);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
             frame:".bin2hex($frame)."
-            停止充电结果:$sendResult " . date('Y-m-d H:i:s', time()));
-
+            停止充电结果:$sendResult " . Carbon::now());
 
         //记录log
         $fiel_data = " 停止充电参数,monitorOrderId:$monitorOrderId ".PHP_EOL." frame: ".bin2hex($frame).PHP_EOL."  时间: ".Carbon::now();
@@ -1000,9 +944,9 @@ class EvseController extends Controller
 
         //下发失败调用monitor
         if(empty($sendResult)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "停止充电下发失败 sendResult:$sendResult");
             //停止失败,调用monitor接口
             $result = MonitorServer::stop_charge_failed_response($monitorOrderId);
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "停止充电下发失败,调用monitor结果result:$result sendResult:$sendResult");
             return false;
         }
 
@@ -1014,7 +958,6 @@ class EvseController extends Controller
             ->onQueue(env("APP_KEY"))
             ->delay(Carbon::now()->addSeconds(7));
         dispatch($job);
-
     }
 
 
@@ -1026,14 +969,12 @@ class EvseController extends Controller
 
     //启动充电响应
     public function startChargeResponse($code, $order_number, $result){
-
         $condition = [
             ['code', '=', $code],
             ['order_id', '=', $order_number]
         ];
         $port = Port::where($condition)->first();
         $monitorOrderId = $port->monitor_order_id;
-
 
         //没有找到响应数据,返回false
         if(empty($port)){
@@ -1065,10 +1006,6 @@ class EvseController extends Controller
             //}
             //更改充电状态
             $port->work_status = 2; //状态,充电中
-            $port->is_fuse = 0;
-            $port->is_flow = 0;
-            $port->is_connect = 0;
-            $port->is_full = 0;
             $port->charged_power = 0;
             $port->left_time = 0;
             $port->current = 0;
@@ -1085,9 +1022,7 @@ class EvseController extends Controller
             //启动成功调用monitor接口
             $result = MonitorServer::start_charge_success_response($monitorOrderId);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电成功,调用monitor结果 result:$result");
-
         }else{
-
             $port->work_status = 3; //状态,启动失败
             $port->is_response = 1; //收到响应
             $port->response_time = Carbon::now();//启动充电响应时间
@@ -1103,17 +1038,12 @@ class EvseController extends Controller
             $result = MonitorServer::start_charge_failed_response($monitorOrderId);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电失败,调用monitor结果 result:$result");
         }
-
         return TRUE;
-
-
-
     }
 
 
     //续费响应
     public function renewResponse($code, $order_number, $result){
-
         $condition = [
             ['code', '=', $code],
             ['order_id', '=', $order_number]
@@ -1145,7 +1075,6 @@ class EvseController extends Controller
 
         //如果续费成功
         if($result){
-
             //更新charge_args
             $renew = $port->renew;
             $chargeArgs = $port->charge_args;
@@ -1153,11 +1082,9 @@ class EvseController extends Controller
             $port->renew = 0;
             $port->is_response = 1; //收到响应
             $port->save();
-
             //续费成功调用monitor接口
             $result = MonitorServer::continue_charge_success_response($orderId);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费成功,调用monitor结果result:$result ");
-
         }else{
             //清空续费
             $port->renew = 0;
@@ -1166,29 +1093,23 @@ class EvseController extends Controller
             //续费失败调用monitor接口
             $result = MonitorServer::continue_charge_failed_response($orderId);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费失败,调用monitor结果result:$result ");
-
         }
-
         return true;
-
-
     }
 
-
     //停止充电响应
-    public function stopChargeResponse($code, $order_number, $result, $left_time, $stop_time){
-
+    public function stopChargeResponse($code, $order_no, $left_time){
         //通过code和order_id获取启动信息
         $condition = [
             ['code', '=', $code],
-            ['order_id', '=', $order_number]
+            ['order_id', '=', $order_no]
         ];
         $port = Port::where($condition)->first();
 
         if(empty($port)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
             停止充电收到响应,未找到数据
-            code:$code, order_number:$order_number, result:$result " . Carbon::now());
+            code:$code, order_no:$order_no, result:$result " . Carbon::now());
             return false;
         }
         $chargeArgs = $port->charge_args;
@@ -1197,7 +1118,7 @@ class EvseController extends Controller
         if($isResponse == 1){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
             停止充电收到响应,已接收过一次,
-            code:$code, order_number:$order_number, result:$result " . Carbon::now());
+            code:$code, order_no:$order_no, left_time:$left_time " . Carbon::now());
             return true;
         }
 
@@ -1208,10 +1129,9 @@ class EvseController extends Controller
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止收到响应, 未找到响应数据:monitorOrderId:$monitorOrderId ");
             return false;
         }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止响应结果:result:$result ");
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止响应结果:left_time:$left_time ");
         //如果停止成功
-        if($result){
-
+        if($left_time >= 0){
             //生成充电记录
             $res = ChargeRecords::create([
                 'code'=>$port->code,
@@ -1226,11 +1146,10 @@ class EvseController extends Controller
                 'charged_power'=>$port->charge_args,
                 'left_time'=>$left_time,
                 'charge_records_time'=>Carbon::now(),
-
             ]);
 
             if(empty($res)){
-                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止响应成功,未保存充电记录:result:$result ");
+                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止响应成功,未保存充电记录:left_time:$left_time ");
                 return false;
             }
             //更改状态,清空数据
@@ -1258,7 +1177,7 @@ class EvseController extends Controller
             $result = MonitorServer::stop_charge_success_response($monitorOrderId, $left_time, $sufficientTime);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止充电成功,调用monitor结果result:$result ");
         }else{
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 收到停止响应, 停止失败:result:$result ");
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 收到停止响应, 停止失败:left_time:$left_time ");
             //停止失败,更新状态
             $port->work_status = 5; //状态,停止失败
             $port->is_response = 1; //收到响应
@@ -1271,8 +1190,6 @@ class EvseController extends Controller
             $result = MonitorServer::stop_charge_failed_response($monitorOrderId);
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止充电失败,调用monitor结果result:$result ");
         }
-
-
     }
 
 

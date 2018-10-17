@@ -1,13 +1,12 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
 
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
-
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -24,9 +23,6 @@ class StopChargeSend implements ShouldQueue
      */
     protected $monitorOrderId;
 
-    
-
-
     /**
      * Create a new job instance.
      *
@@ -34,9 +30,7 @@ class StopChargeSend implements ShouldQueue
      */
     public function __construct($monitorOrderId)
     {
-
         $this->monitorOrderId = $monitorOrderId;
-
     }
 
     /**
@@ -48,9 +42,5 @@ class StopChargeSend implements ShouldQueue
     {
         $evseController = new EvseController();
         $evseController->stopChargeSend($this->monitorOrderId);
-
     }
-
-
-
 }

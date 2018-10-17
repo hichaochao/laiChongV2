@@ -1,13 +1,12 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
 
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
-
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -22,27 +21,27 @@ class RenewSend implements ShouldQueue
     /**
      * @var string monitor订单号
      */
-    protected $monitorOrderId;
+    protected $monitor_order_id;
 
     /**
      * @var string monitor编号
      */
-    protected $monitorCode;
+    protected $monitor_code;
 
     /**
      * @var string 充电类型
      */
-    protected $chargeType;
+    protected $port_numbers;
 
     /**
      * @var string 充电时间
      */
-    protected $chargeArgs;
+    protected $charge_time;
 
     /**
      * @var string 订单号
      */
-    protected $orderId;
+    protected $order_no;
 
 
     /**
@@ -50,15 +49,13 @@ class RenewSend implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($monitorOrderId, $monitorCode, $chargeType, $chargeArgs, $orderId)
+    public function __construct($monitor_order_id, $monitor_code, $port_numbers, $charge_time, $order_no)
     {
-
-        $this->monitorOrderId = $monitorOrderId;
-        $this->monitorCode = $monitorCode;
-        $this->chargeType = $chargeType;
-        $this->chargeArgs = $chargeArgs;
-        $this->orderId = $orderId;
-
+        $this->monitor_order_id = $monitor_order_id;
+        $this->monitor_code = $monitor_code;
+        $this->port_numbers = $port_numbers;
+        $this->charge_time = $charge_time;
+        $this->order_no = $order_no;
     }
 
     /**
@@ -69,8 +66,7 @@ class RenewSend implements ShouldQueue
     public function handle()
     {
         $evseController = new EvseController();
-        $evseController->renewSend($this->monitorOrderId, $this->monitorCode, $this->chargeType, $this->chargeArgs, $this->orderId);
-
+        $evseController->renewSend($this->monitor_order_id, $this->monitor_code, $this->port_numbers, $this->charge_time, $this->order_no);
     }
 
 

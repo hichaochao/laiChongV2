@@ -1,7 +1,7 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
@@ -26,28 +26,23 @@ class RenewResponse implements ShouldQueue
     /**
      * @var string 订单编号
      */
-    protected $order_number;
+    protected $order_no;
 
     /**
      * @var string 启动结果
      */
     protected $result;
 
-
-
-
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($code, $order_number, $result)
+    public function __construct($code, $order_no, $result)
     {
-
         $this->code = $code;
-        $this->order_number = $order_number;
+        $this->order_no = $order_no;
         $this->result = $result;
-
     }
 
     /**
@@ -58,10 +53,6 @@ class RenewResponse implements ShouldQueue
     public function handle()
     {
         $evseController = new EvseController();
-        $evseController->renewResponse($this->code, $this->order_number, $this->result);
-
+        $evseController->renewResponse($this->code, $this->order_no, $this->result);
     }
-
-
-
 }

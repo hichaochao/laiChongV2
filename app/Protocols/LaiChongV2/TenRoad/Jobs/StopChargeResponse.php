@@ -27,23 +27,12 @@ class StopChargeResponse implements ShouldQueue
     /**
      * @var string 订单编号
      */
-    protected $order_number;
-
-    /**
-     * @var string 启动结果
-     */
-    protected $result;
+    protected $order_no;
 
     /**
      * @var string 剩余时间
      */
     protected $left_time;
-
-    /**
-     * @var string 停止时间
-     */
-    protected $stop_time;
-
 
 
     /**
@@ -51,15 +40,11 @@ class StopChargeResponse implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($code, $order_number, $result, $left_time, $stop_time)
+    public function __construct($code, $order_no, $left_time)
     {
-
         $this->code = $code;
-        $this->order_number = $order_number;
-        $this->result = $result;
+        $this->order_number = $order_no;
         $this->left_time = $left_time;
-        $this->stop_time = $stop_time;
-
     }
 
     /**
@@ -70,8 +55,7 @@ class StopChargeResponse implements ShouldQueue
     public function handle()
     {
         $evseController = new EvseController();
-        $evseController->stopChargeResponse($this->code, $this->order_number, $this->result, $this->left_time, $this->stop_time);
-
+        $evseController->stopChargeResponse($this->code, $this->order_number, $this->left_timess);
     }
 
 

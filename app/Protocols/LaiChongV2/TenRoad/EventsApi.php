@@ -91,8 +91,18 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetTurnover as EvseGetTu
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetParameter as ServerGetParameter;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetParameter as EvseGetParameter;
 
-//查询时间
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetDateTime as EvseGetDateTime;
+//状态查询
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetWorkStatus as EvseGetWorkStatus;
+
+//单通道时间查询
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SingleChannel as EvseSingleChannel;
+
+//所有通道时间查询
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\AllThoroughTime as EvseAllThoroughTime;
+
+//控制,统一相应
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Answer as EvseAnswer;
+
 
 //查询ID
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetId as EvseGetId;
@@ -151,15 +161,35 @@ class EventsApi extends BaseEvents
         }
         //指令
         $operator = $frame->operator->getValue();
+        $instruct = '';
+        //如果是统一应答
+        if($operator == 0xE0){
+            $answer = new EvseAnswer();
+            $frame_load = $answer($message);
+            $instruct = $frame_load->instruct->getValue();
+        }
         //设备类型
         $type = $frame->type->getValue();
         //互联网模块设备类型
         $internet_type = 0x01;
         //C款充电桩主板
         $main_board_type = 0x10;
+
+        //修改参数指令
+        $fix_parameter = 0x41;
+        //修改时钟
+        $fix_date = 0x42;
+        //启动充电
+        $start_charge = 0x43;
+        //续费
+        $renew = 0x44;
+        //停止充电
+        $stop_chage = 0x45;
+        //清空营业额
+        $empty_turnover = 0x46;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " " . " operator:,".$operator.' type:'.$type." isValid:$frame->isValid");
         if (!empty($frame)) {
-            switch ($operator.$type) {
+            switch ($operator.$type.$instruct) {
 
                 /*****************************************桩主动上报****************************************************/
                 case (0x11.$internet_type):
@@ -176,15 +206,15 @@ class EventsApi extends BaseEvents
                     break;
 
                 /*****************************************控制类上报****************************************************/
-                case (0x1201):
+                case (0xE0.$main_board_type.$start_charge):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电 " );
                     self::start_charge_response($message);
                     break;
-                case (0x1202):
+                case (0xE0.$main_board_type.$renew):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费 " );
                     self::renew_response($message);
                     break;
-                case (0x1203):
+                case (0xE0.$main_board_type.$stop_chage):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止充电 " );
                     self::stop_charge_response($message);
                     break;
@@ -202,6 +232,19 @@ class EventsApi extends BaseEvents
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值设置 " );
                     self::set_threshold_response($message);
                     break;
+                case (0xE0.$main_board_type.$fix_parameter):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改参数 " );
+                    self::set_parameter_response($message);
+                    break;
+                case (0xE0.$main_board_type.$fix_date):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时钟 " );
+                    self::set_date_time_response($message);
+                    break;
+                case (0xE0.$main_board_type.$empty_turnover):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额 " );
+                    self::empty_turnover_response($message);
+                    break;
+
 
                 /*****************************************查询类上报****************************************************/
                 case (0x23.$internet_type):
@@ -228,13 +271,17 @@ class EventsApi extends BaseEvents
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询 " );
                     self::get_turnover_response($message);
                     break;
+                case (0x35.$main_board_type):
+                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态查询 " );
+                    self::get_status_infos_response($message);
+                    break;
                 case (0x34.$main_board_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道时间 " );
                     self::get_channel_response($message);
                     break;
                 case (0x36.$main_board_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间 " );
-                    self::get_channel_response($message);
+                    self::get_all_channel_response($message);
                     break;
                 case (0x35.$main_board_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 上传状态 " );
@@ -385,107 +432,86 @@ class EventsApi extends BaseEvents
 
     //启动充电响应
     private static function start_charge_response($message){
-
-        $startChrge = new EvseStartCharge();
+        $startChrge = new EvseAnswer();
         $startChrge($message);
         $code = $startChrge->code->getValue();
-        $order_number = $startChrge->order_number->getValue();
+        $order_no = $startChrge->order_no->getValue();
+        $instruct = $startChrge->instruct->getValue();
         $result = $startChrge->result->getValue();
-
         //判断接受参数是否正确
-        if(empty($code) || empty($order_number) || !is_numeric($result)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电响应接受参数错误 code:$code, order_number:$order_number, result:$result ");
+        if(empty($code) || empty($order_no) || empty($instruct) || !is_numeric($result)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电响应接受参数错误 code:$code, order_no:$order_no, result:$result ");
             return false;
         }
-
         //记录对应相应桩的log
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电响应: order_number:$order_number, result:$result ".Carbon::now() );
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电响应: order_no:$order_no, instruct:$instruct, result:$result ".Carbon::now() );
 
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            code:$code, order_number:$order_number, result:$result " . Carbon::now());
+            code:$code, order_no:$order_no, result:$result " . Carbon::now());
 
         //记录log
-        $fiel_data = " 启动充电响应时间 date: ".Carbon::now()." 启动充电响应参数 code:$code, order_number:$order_number, result:$result "." 启动充电响应帧 frame: ".bin2hex($message);
-        $redis_data = "启动充电响应".'-'.json_encode(array('code'=>$code, 'order_number'=>$order_number, 'result'=>$result)).'-'.bin2hex($message).'-'.Carbon::now().'+';
+        $fiel_data = " 启动充电响应时间 date: ".Carbon::now()." 启动充电响应参数 code:$code, sorder_no:$order_no, result:$result "." 启动充电响应帧 frame: ".bin2hex($message);
+        $redis_data = "启动充电响应".'-'.json_encode(array('code'=>$code, 'order_no'=>$order_no, 'result'=>$result)).'-'.bin2hex($message).'-'.Carbon::now().'+';
         self::record_log($code, $fiel_data, $redis_data);
 
-
         //启动充电
-        $job = (new StartChargeResponse($code, $order_number, $result))
+        $job = (new StartChargeResponse($code, $order_no, $result))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
-
-
     }
 
 
     //续费响应
     private static function renew_response($message){
-
-        $renew = new EvseRenew();
-        $frame_load = $renew($message);
-        $code = $frame_load->code->getValue();
-        $order_number = $frame_load->order_number->getValue();
-        $result = $frame_load->result->getValue();
-
+        $renew = new EvseAnswer();
+        $renew($message);
+        $code = $renew->code->getValue();
+        $order_no = $renew->order_no->getValue();
+        $instruct = $renew->instruct->getValue();
+        $result = $renew->result->getValue();
         //判断接受参数是否正确
-        if(empty($code) || empty($order_number) || !is_numeric($result)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费响应接受参数错误, code:$code, order_number:$order_number, result:$result ");
+        if(empty($code) || empty($order_no) || empty($instruct) || !is_numeric($result)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "续费响应接受参数错误 code:$code, order_no:$order_no, result:$result ");
             return false;
         }
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            code:$code, order_number:$order_number, result:$result " . Carbon::now());
-
-
+            code:$code, order_no:$order_no, result:$result " . Carbon::now());
         //记录log
-        $fiel_data = " 续费响应时间 date: ".Carbon::now()." 续费响应参数 code:$code, order_number:$order_number, result:$result "." 续费响应帧 frame: ".bin2hex($message);
-        $redis_data = "续费响应".'-'.json_encode(array('code'=>$code, 'order_number'=>$order_number, 'result'=>$result)).'-'.bin2hex($message).'-'.Carbon::now().'+';
+        $fiel_data = " 续费响应时间 date: ".Carbon::now()." 续费响应参数 code:$code, order_no:$order_no, result:$result "." 续费响应帧 frame: ".bin2hex($message);
+        $redis_data = "续费响应".'-'.json_encode(array('code'=>$code, 'order_no'=>$order_no, 'result'=>$result)).'-'.bin2hex($message).'-'.Carbon::now().'+';
         self::record_log($code, $fiel_data, $redis_data);
 
-
         //处理续费响应数据
-        $job = (new RenewResponse($code, $order_number, $result))
+        $job = (new RenewResponse($code, $order_no, $result))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
         //处理数据
         //$result = self::$controller->renew($code, $order_number, $result);
-
-
     }
 
 
     //停止充电响应
     private static function stop_charge_response($message){
-
-        $stop = new EvseStopCharge();
-        $frame_load = $stop($message);
-        $code = $frame_load->code->getValue();
-        $order_number = $frame_load->order_number->getValue();
-        $result = $frame_load->result->getValue();
-        $left_time = $frame_load->left_time->getValue();
-        $stop_time = $frame_load->stop_time->getValue();
-
+        $renew = new EvseAnswer();
+        $renew($message);
+        $code = $renew->code->getValue();
+        $order_no = $renew->order_no->getValue();
+        $instruct = $renew->instruct->getValue();
+        $left_time = $renew->result->getValue(); //剩余时间
         //判断接受参数是否正确
-        if(empty($code) || empty($order_number) || !is_numeric($result) || !is_numeric($left_time) || !is_numeric($stop_time)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费响应接受参数错误 code:$code, order_number:$order_number, result:$result, left_time:$left_time, stop_time:$stop_time ");
+        if(empty($code) || empty($order_no) || empty($instruct) || !is_numeric($left_time)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "停止充电响应接受参数错误 code:$code, order_no:$order_no, left_time:$left_time ");
             return false;
         }
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            code:$code, order_number:$order_number, result:$result, left_time:$left_time, stop_time:$stop_time " . Carbon::now());
-
-
+            code:$code, order_no:$order_no, left_time:$left_time " . Carbon::now());
         //记录log
-        $fiel_data = " 停止充电响应时间 date: ".Carbon::now()." 停止充电响应参数 code:$code, order_number:$order_number, result:$result, left_time:$left_time, stop_time:$stop_time "." 停止充电响应帧 frame: ".bin2hex($message);
-        $redis_data = "停止充电响应".'-'.json_encode(array('code'=>$code, 'order_number'=>$order_number, 'result'=>$result, 'left_time'=>$left_time, 'stop_time'=>$stop_time)).'-'.bin2hex($message).'-'.Carbon::now().'+';
+        $fiel_data = " 停止充电响应时间 date: ".Carbon::now()." 停止充电响应参数 code:$code, order_no:$order_no, left_time:$left_time "." 停止充电响应帧 frame: ".bin2hex($message);
+        $redis_data = "停止充电响应".'-'.json_encode(array('code'=>$code, 'order_no'=>$order_no, 'left_time'=>$left_time)).'-'.bin2hex($message).'-'.Carbon::now().'+';
         self::record_log($code, $fiel_data, $redis_data);
 
-
         //处理停止充电响应数据
-        $job = (new StopChargeResponse($code, $order_number, $result, $left_time, $stop_time))
+        $job = (new StopChargeResponse($code, $order_no, $left_time))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
 
@@ -562,64 +588,69 @@ class EventsApi extends BaseEvents
         $result = self::$controller->setThreshold($code, $result);
     }
 
+    //修改参数响应
+    private static function set_parameter_response($message){
+        $answer = new EvseAnswer();
+        $frame_load = $answer($message);
+        $code = $frame_load->code->getValue();
+        $order_no = $frame_load->order_no->getValue();
+        $instruct = $frame_load->instruct->getValue();
+        $result = $frame_load->result->getValue();
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "统一应答响应参数 code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame: ".bin2hex($message).' date:'.Carbon::now() );
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 统一应答： code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame:".bin2hex($message) . Carbon::now());
+        //处理数据
+        $result = self::$controller->setParament($code, $result);
+    }
+
+    //修改时钟响应
+    private static function set_date_time_response($message){
+        $answer = new EvseAnswer();
+        $frame_load = $answer($message);
+        $code = $frame_load->code->getValue();
+        $order_no = $frame_load->order_no->getValue();
+        $instruct = $frame_load->instruct->getValue();
+        $result = $frame_load->result->getValue();
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "修改时钟响应参数 code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame: ".bin2hex($message).' date:'.Carbon::now() );
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 修改时钟响应s： code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame:".bin2hex($message) . Carbon::now());
+    }
 
     //清空营业额响应
     private static function empty_turnover_response($message){
-
-        $turnover = new EvseEmptyTurnover();
-        $frame_load = $turnover($message);
+        $answer = new EvseAnswer();
+        $frame_load = $answer($message);
         $code = $frame_load->code->getValue();
-        $coin_num = $frame_load->coin_num->getValue();
-        $card_cost = $frame_load->card_cost->getValue();
-        $card_time = $frame_load->card_time->getValue();
+        $order_no = $frame_load->order_no->getValue();
+        $instruct = $frame_load->instruct->getValue();
         $result = $frame_load->result->getValue();
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 设置服务器信息收到响应：
-            code:$code, coin_num:$coin_num, card_cost:$card_cost, card_time:$card_time result:$result " . Carbon::now());
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额响应时间 date: ".Carbon::now() );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额响应参数 code:$code, coin_num:$coin_num,card_cost:$card_cost,card_time:$card_time ,result:$result " );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额响应帧 frame: ".bin2hex($message) );
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "清空营业额响应参数 code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame: ".bin2hex($message).' date:'.Carbon::now() );
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 清空营业额响应： code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame:".bin2hex($message) . Carbon::now());
 
         //记录log
         $expire = strtotime(date('Y-m-d 00:00:00')) + 86400 - time();
         $parameter = $code.uniqid(mt_rand(),1);
-        $content = "清空营业额响应: code:$code, coin_num:$coin_num, card_cost:$card_cost, card_time:$card_time, result:$result ".'-'.bin2hex($message).'-'.Carbon::now();
+        $content = "清空营业额响应: code:$code, result:$result ".'-'.bin2hex($message).'-'.Carbon::now();
         Redis::set($parameter,$content,'EX',$expire);
 
         //处理数据
-        $result = self::$controller->emptyTurnover($code, $coin_num, $card_cost, $card_time, $result);
-
+        //$result = self::$controller->emptyTurnover($code, $coin_num, $card_cost, $card_time, $result);
     }
 
-
-    //设置参数响应
-    private static function set_parameter_response($message){
-
-        $parameter = new EvseSetParameter();
-        $frame_load = $parameter($message);
+    //控制,统一应答
+    private static function get_date_time_response($message){
+        $answer = new EvseAnswer();
+        $frame_load = $answer($message);
         $code = $frame_load->code->getValue();
+        $order_no = $frame_load->order_no->getValue();
+        $instruct = $frame_load->instruct->getValue();
         $result = $frame_load->result->getValue();
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 设置参数响应：
-            code:$code, result:$result " . Carbon::now());
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数响应时间 date: ".Carbon::now() );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数响应参数 code:$code, result:$result " );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数响应帧 frame: ".bin2hex($message) );
-
-        //记录log
-        $expire = strtotime(date('Y-m-d 00:00:00')) + 86400 - time();
-        $parameter = $code.uniqid(mt_rand(),1);
-        $content = "设置参数响应: code:$code, result:$result ".'-'.bin2hex($message).'-'.Carbon::now();
-        Redis::set($parameter,$content,'EX',$expire);
-
-        //处理数据
-        $result = self::$controller->setParament($code, $result);
-
-
-
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "统一应答响应参数 code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame: ".bin2hex($message).' date:'.Carbon::now() );
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 统一应答： code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame:".bin2hex($message) . Carbon::now());
     }
+
+
+
+
+
 
 
 
@@ -794,46 +825,53 @@ class EventsApi extends BaseEvents
         dispatch($job);
     }
 
+    //状态查询
+    private static function get_status_infos_response($message){
+        $workStatus = new EvseGetWorkStatus();
+        $frame_load = $workStatus($message);
 
+        $code = $frame_load->code->getValue(); //设备编号
+        $lock_status = $frame_load->lock_thorough->getValue(); //当前锁定通道
+        $work_status = $frame_load->work_status->getValue(); //工作状态
+        $fault_status = $frame_load->fault_status->getValue(); //故障状态
+        if(empty($code)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 接收状态查询,桩编号为空 " . Carbon::now());
+        }
+        //记录对应某个桩的log
+        $file_data = " 状态查询,桩上报时间 date: ".Carbon::now().PHP_EOL." 状态查询,桩上报参数 code:$code, lock_status:$lock_status, work_status:$work_status, fault_status:$fault_status ".PHP_EOL." 状态查询,桩上报帧 frame: ".bin2hex($message);
+        $redis_data = "状态查询,桩上报".'-'.json_encode(array('code'=>$code,'lock_status'=>$lock_status, 'work_status'=>$work_status, 'fault_status'=>$fault_status)).'-'.bin2hex($message).'-'.Carbon::now().'+';
+        self::record_log($code, $file_data, $redis_data);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " code:$code, lock_status:$lock_status, work_status:$work_status, fault_status:$fault_status " . Carbon::now());
+    }
 
-    //通道查询响应
+    //单通道时间查询响应
     private static function get_channel_response($message){
-
-        $status = new EvseGetChannelStatus();
-        $frame_load = $status($message);
+        $singleChannel = new EvseSingleChannel();
+        $frame_load = $singleChannel($message);
         $code = $frame_load->code->getValue();
+        $channel_number = $frame_load->channel_number->getValue(); //通道号
+        $left_time = $frame_load->left_time->getValue(); //剩余时间
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 单通道时间查询响应:code:$code, channel_number:$channel_number, left_time:$left_time" . Carbon::now());
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询响应帧 frame: ".bin2hex($message).'时间:'.Carbon::now() );
+    }
 
-        $order_number = $frame_load->order_number->getValue();
-        $channel_num = $frame_load->channel_num->getValue();
-        $current_average = $frame_load->current_average->getValue();
-        $max_current = $frame_load->max_current->getValue();
-        $current_base = $frame_load->current_base->getValue();
-        $run_time = $frame_load->run_time->getValue();
-        $left_time = $frame_load->left_time->getValue();
-        $full_time = $frame_load->full_time->getValue();
-        $payment_mode = $frame_load->payment_mode->getValue();
-        $equipment_status = $frame_load->equipment_status->getValue();
-
-        $data = ['current_average'=>$current_average, 'max_current'=>$max_current, 'current_base'=>$current_base, 'run_time'=>$run_time, 'left_time'=>$left_time,
-            'full_time'=>$full_time, 'payment_mode'=>$payment_mode];
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 查询通道状态：
-            code:$code, channel_num:$channel_num, order_number:$order_number, current_average:$current_average, max_current:$max_current
-             current_base：$current_base, run_time：$run_time, left_time：$left_time, full_time：$full_time,
-             payment_mode:$payment_mode, equipment_status:$equipment_status
-             " . Carbon::now());
-
-        $date = Carbon::now();
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询响应时间 date: $date" );
-        //Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询响应参数 code:$code, coin_num:$coin_num,card_cost:$card_cost,card_time:$card_time " );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询响应帧 frame: ".bin2hex($message) );
-
-
-        //处理数据
-        $result = self::$controller->channelStatus($code, $channel_num, $order_number, $data, $equipment_status);
-
-
-
+    //所有通道时间查询响应
+    private static function get_all_channel_response($message){
+        $thoroughTime = new EvseAllThoroughTime();
+        $frame_load = $thoroughTime($message);
+        $code = $frame_load->code->getValue();
+        $left_time0 = $frame_load->channel0->getValue(); //0通道时间
+        $left_time1 = $frame_load->channel1->getValue(); //1通道时间
+        $left_time2 = $frame_load->channel2->getValue(); //2通道时间
+        $left_time3 = $frame_load->channel3->getValue(); //3通道时间
+        $left_time4 = $frame_load->channel4->getValue(); //4通道时间
+        $left_time5 = $frame_load->channel5->getValue(); //5通道时间
+        $left_time6 = $frame_load->channel6->getValue(); //6通道时间
+        $left_time7 = $frame_load->channel7->getValue(); //7通道时间
+        $left_time8 = $frame_load->channel8->getValue(); //8通道时间
+        $left_time9 = $frame_load->channel9->getValue(); //9通道时间
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 所有通道时间查询响应:code:$code, ".bin2hex($message).Carbon::now());
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间查询响应帧 frame: ".bin2hex($message).'时间:'.Carbon::now() );
     }
 
 
@@ -892,23 +930,7 @@ class EventsApi extends BaseEvents
 
 
 
-    //查询时间
-    private static function get_date_time_response($message){
 
-        $getDateTime = new EvseGetDateTime();
-        $frame_load = $getDateTime($message);
-
-        $code = $frame_load->code->getValue();
-        $dateTime = $frame_load->date_time->getValue();
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询时间响应时间 date: ".Carbon::now() );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询时间响应参数 code:$code, dateTime:$dateTime " );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询时间响应帧 frame: ".bin2hex($message) );
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 查询时间：
-            code:$code, dateTime:$dateTime," . Carbon::now());
-
-    }
 
     //记录log,包括参数,帧,时间
     private static function record_log($code, $fiel_data, $redis_data){

@@ -22,7 +22,7 @@ class CreateQuChongPortsTable extends Migration
             $table->string('monitor_code',36)->default("")->commnet('moniotr桩编号');
             $table->tinyInteger('port_number')->unsigned()->comment('枪口号');
             $table->string('monitor_order_id',36)->default("")->commnet('moniotr订单号');
-            $table->string('order_id',10)->default("")->commnet('订单号');
+            $table->integer('order_no')->unsigned()->default(1)->comment('单号');
 
             //状态
             $table->tinyInteger('work_status')->unsigned()->default(0)->comment('工作状态 0/空闲 1/启动中 2/充电中 3/启动失败 4/停止中 5/停止失败');

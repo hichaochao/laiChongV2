@@ -15,6 +15,12 @@ class SetParameter extends Frame
     protected $instructions = 0x41;
 
     /**
+     * 订单号
+     * @var int
+     */
+    protected $order_no = [BIN::class,1,TRUE];
+
+    /**
      * 刷卡费率
      * @var int
      */

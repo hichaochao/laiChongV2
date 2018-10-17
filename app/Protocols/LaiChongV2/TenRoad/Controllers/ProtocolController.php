@@ -755,7 +755,6 @@ class ProtocolController
 
     //设置参数
     public function setParament($code, $result){
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 参数设置响应成功 start ");
         //如果设置成功,更新参数
         if($result){
@@ -767,8 +766,6 @@ class ProtocolController
             $evse->request_result = json_encode($requestResult);
             $evse->save();
         }
-
-
     }
 
 

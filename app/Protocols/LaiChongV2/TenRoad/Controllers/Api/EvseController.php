@@ -61,9 +61,6 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetPort as ServerSetPo
 //清空营业额
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\EmptyTurnover as ServerEmptyTurnover;
 
-//设置参数
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetParameter as ServerSetParameter;
-
 //查询ID
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetId as ServerGetId;
 
@@ -82,8 +79,20 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\ReadMeter as ServerRea
 //营业额查询
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetTurnover as ServerGetTurnover;
 
+//状态查询
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetWorkStatus as ServerGetWorkStatus;
+
 //查询参数
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetParameter as ServerGetParameter;
+
+//单通道时间查询
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SingleChannel as ServerSingleChannel;
+
+//所有通道时间查询
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\AllThoroughTime as ServerAllThoroughTime;
+
+//修改参数
+use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetParameter as ServerSetParameter;
 
 //修改时间
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetTime as ServerSetTime;
@@ -204,28 +213,19 @@ die;
 
     //启动充电
     public function startCharge(StartChargeValidator $chargeValidator){
-
-//        $key = Redis::keys('c*');
-//        $aa = Redis::get($key[0]);
-//        var_dump($aa);die;
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " startCharge start");
         $params = $this->request->all();
         $params = $params['params'];
-
         $validator = $chargeValidator->make($params);
         if ($validator->fails()) {
             return $this->errorBadRequest($validator->messages());
         }
-
-        $monitorOrderId = $params['order_id'];
-        $monitorCode = $params['code'];//monitorCode
-        $chargeType = $params['charge_type'];
-        $chargeArgs = $params['charge_args'];
-        $order_id = $this->getOrderId();
-
-
-        $port = Port::where('monitor_code',$monitorCode)->first();//firstOrFail
+        $monitor_order_id = $params['order_id'];
+        $monitor_code = $params['code'];//monitorCode
+        $port_numbers = $params['port_numbers'];
+        $charge_time = $params['charge_time'];
+        $order_no = $this->getOrderId(); //订单号
+        //获取枪口数据
+        $port = Port::where('monitor_code',$monitor_code)->first();//firstOrFail
         if(empty($port)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,未找到数据 monitorCode: $monitorCode");
             return $this->response->array(
@@ -237,7 +237,7 @@ die;
         }
         $code = $port->code;//桩编号
         //判断桩是否在线或则是否在空闲中
-        $onlineStatus = $port->evse->online_status;
+        $onlineStatus = $port->online_status;
         $workStatus = $port->work_status;
         if($onlineStatus != 1 || $workStatus != 0){
             Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,桩不在线或者不在空闲状态,online_status: ".$onlineStatus.' monitorCode:'.$monitorCode );
@@ -249,12 +249,14 @@ die;
                 ]
             );
         }
+        //将订单号存到启动的枪口中
+        $port->order_no = $order_no;
+        $port->save();
 
         //启动充电
-        $job = (new StartChargeSend($monitorOrderId, $monitorCode, $chargeType, $chargeArgs, $order_id))
+        $job = (new StartChargeSend($monitor_order_id, $monitor_code, $port_numbers, $charge_time, $order_no))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
         //返回下发结果
         return $this->response->array(
             [
@@ -266,20 +268,19 @@ die;
 
     //续费
     public function renew(RenewValidator $renewValidator){
-        //获取信息
         $params = $this->request->all();
         $params = $params['params'];
         $validator = $renewValidator->make($params);
         if ($validator->fails()) {
             return $this->errorBadRequest($validator->messages());
         }
-
-        $monitorCode = $params['code'];       //桩编号
-        $monitorOrderId = $params['order_id'];//monitor订单号
-        $chargeType = $params['charge_type'];//续费模式
-        $chargeArgs = $params['charge_args'];//续费参数
-
-        $port = Port::where('monitor_code',$monitorCode)->first();//firstOrFail
+        $monitor_order_id = $params['order_id']; //monitor订单号
+        $monitor_code = $params['code'];//monitorCode
+        $port_numbers = $params['port_numbers']; //枪口号
+        $charge_time = $params['charge_time']; //添加时间
+        $order_no = $this->getOrderId(); //订单号
+        //获取枪数据
+        $port = Port::where('monitor_code',$monitor_code)->first();//firstOrFail
         if(empty($port)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,未找到数据 monitorCode:$monitorCode ");
             return $this->response->array(
@@ -305,7 +306,7 @@ die;
             );
         }
         //续费下发
-        $job = (new RenewSend($monitorOrderId, $monitorCode, $chargeType, $chargeArgs, $orderId))
+        $job = (new RenewSend($monitor_order_id, $monitor_code, $port_numbers, $charge_time, $order_no))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
         return $this->response->array(
@@ -324,11 +325,10 @@ die;
         if ($validator->fails()) {
             return $this->errorBadRequest($validator->messages());
         }
-        //$code = $params['code'];
-        //$channelNumber = $params['channel_number'];
-        $monitorOrderId = $params['order_id'];
-
-        $port = Port::where('monitor_order_id',$monitorOrderId)->first();//firstOrFail
+        //monitor订单号
+        $monitor_order_id = $params['order_no'];
+        //获取枪数据
+        $port = Port::where('monitor_order_id',$monitor_order_id)->first();//firstOrFail
         $code = $port->code;//桩编号
         //判断桩是否在线或则是否在充电中
         $onlineStatus = $port->evse->online_status;
@@ -343,8 +343,8 @@ die;
                 ]
             );
         }
-        //下发停止充电帧
-        $job = (new StopChargeSend($monitorOrderId))
+        //下发停止充电帧监控
+        $job = (new StopChargeSend($monitor_order_id))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
         return $this->response->array(
@@ -611,17 +611,158 @@ die;
         }
     }
 
+    //设置参数
+    public function setParameter(){
+        $params = $this->request->all();
+        $params = $params['params'];
+        $code = $params['code'];
+        $card_rate = $params['card_rate']; //刷卡费率
+        $card_time = $params['card_time']; //刷卡时间
+        $coin_rate = $params['coin_rate']; //投币费率
+        $power_base = $params['power_base']; //标准电流
+        $channel_maximum_current = $params['channel_maximum_current']; //通道最大电流
+        $disconnect = $params['disconnect']; //插头拔断断电开关
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数,code: $code 时间 date: ".Carbon::now() );
+
+        //获取workeId
+        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        $workeId = $evse->worker_id;
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
+        if(empty($workeId)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数,workeId为空 ");
+            return $this->response->array(
+                [
+                    'status_code' => 500,
+                    'message' => "command send failed"
+                ]
+            );
+        }
+        //获取单号
+        if(empty($evse->order_no) || $evse->order_no > 200){
+            $evse->order_no = 1;
+        }else{
+            $evse->order_no = $evse->order_no + 1;
+        }
+        $evse->save();
+        $order_no = $evse->order_no;
+
+        //组装帧
+        $parameter = new ServerSetParameter();
+        $parameter->code(intval($code));
+        $parameter->order_no(intval($order_no));
+        $parameter->card_rate($card_rate);
+        $parameter->card_time($card_time);
+        $parameter->coin_rate($coin_rate);
+        $parameter->power_base($power_base);
+        $parameter->channel_maximum_current($channel_maximum_current);
+        $parameter->disconnect($disconnect);
+        $frame = strval($parameter);
+        $sendResult  = EventsApi::sendMsg($workeId,$frame);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",frame:".bin2hex($frame)."设置参数:$sendResult " .Carbon::now());
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数参数帧: frame: ".bin2hex($frame) );
+
+        //记录log
+        $content = "设置参数参数帧: code:$code,order_no:$order_no,card_rate:$card_rate,card_time:$card_time,coin_rate:$coin_rate,power_base:$power_base,channel_maximum_current:$channel_maximum_current,disconnect:$disconnect".'-'.bin2hex($frame).'-'.Carbon::now();
+        $this->record_log($code, $content);
+
+        $data = ['card_rate'=>$card_rate, "card_time"=>$card_time, "coin_rate"=>$coin_rate, "power_base"=>$power_base, "channel_maximum_current"=>$channel_maximum_current, "disconnect"=>$disconnect];
+        //使用队列,检查设置参数是否设置成功
+        $job = (new CheckSetParameter('parameter', $data, $code))
+            ->onQueue(env("APP_KEY"))
+            ->delay(Carbon::now()->addSeconds(6));
+        dispatch($job);
+
+
+        //返回下发结果
+        if($sendResult){
+            return $this->response->array(
+                [
+                    'status_code' => 201,
+                    'message' => "command send sucesss"
+                ]
+            );
+        }else{
+            return $this->response->array(
+                [
+                    'status_code' => 500,
+                    'message' => "command send failed"
+                ]
+            );
+        }
+
+    }
+
+    //修改时间
+    public function setDateTime(){
+        $params = $this->request->all();
+        $params = $params['params'];
+        $code = $params['code'];
+        $year = $params['year'];
+        $month = $params['month'];
+        $day = $params['day'];
+        $hour = $params['hour'];
+        $minute = $params['minute'];
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间,时间 date: ".Carbon::now() );
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间参数 code: $code " );
+        //获取workeId
+        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        $workeId = $evse->worker_id;
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
+        if(empty($workeId)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间,workeId为空 ");
+            return false;
+        }
+
+        //获取单号
+        if(empty($evse->order_no) || $evse->order_no > 200){
+            $evse->order_no = 1;
+        }else{
+            $evse->order_no = $evse->order_no + 1;
+        }
+        $evse->save();
+        $order_no = $evse->order_no;
+
+        //$dateTime = date('YmdHis', strtotime($dateTime));
+        //$dateTime = substr($dateTime, 2);
+
+        $setTime = new ServerSetTime();
+        $setTime->code(intval($code));
+        $setTime->order_no(intval($order_no));
+        $setTime->year(intval($year));
+        $setTime->moth(intval($month));
+        $setTime->day(intval($day));
+        $setTime->hour(intval($hour));
+        $setTime->minute(intval($minute));
+        $frame = strval($setTime);
+        $sendResult  = EventsApi::sendMsg($workeId,$frame);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",frame:".bin2hex($frame)."修改时间:$sendResult " . Carbon::now());
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间下发帧 frame: ".bin2hex($frame) );
+        //返回下发结果
+        if($sendResult){
+            return $this->response->array(
+                [
+                    'status_code' => 201,
+                    'message' => "command send sucesss"
+                ]
+            );
+        }else{
+            return $this->response->array(
+                [
+                    'status_code' => 500,
+                    'message' => "command send failed"
+                ]
+            );
+        }
+    }
+
     //清空营业额
     public function emptyTurnover(){
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额start ");
         $params = $this->request->all();
         $params = $params['params'];
         $code = $params['code'];
-
-        $date = Carbon::now();
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额,时间 date: $date" );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额参数 code: $code " );
+        $option = $params['option'];
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "  code: $code 清空营业额,时间 date: ".Carbon::now() );
 
         //获取workeId
         $evse = Evse::where("code",$code)->first(); //firstOrFail
@@ -637,20 +778,12 @@ die;
             );
         }
 
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额,流水号serialNumber：$serialNumber ");
 
         //组装帧
         $turnover = new ServerEmptyTurnover();
         $turnover->code(intval($code));
-        $turnover->serial_number($serialNumber);
+        $turnover->order_no(intval($orer_no));
+        $turnover->option(intval($option));
         $frame = strval($turnover);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
         $sendResult  = EventsApi::sendMsg($workeId,$frame);
@@ -688,152 +821,11 @@ die;
 
 
 
-    //设置参数
-    public function setParameter(){
-
-        $params = $this->request->all();
-        $params = $params['params'];
-        $code = $params['code'];
-        $channelMaximumCurrent = $params['channelMaximumCurrent'];
-        $powerBase = $params['powerBase'];
-        $coinRate = $params['coinRate'];
-        $cardRate = $params['cardRate'];
-        $fullJudge = $params['fullJudge'];
-        $disconnect = $params['disconnect'];
-
-        $date = Carbon::now();
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数,时间 date: $date" );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数参数 code: $code " );
-
-        //获取workeId
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        $workeId = $evse->worker_id;
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
-        if(empty($workeId)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额,workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
-        }
-
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数,流水号serialNumber：$serialNumber ");
-
-        //组装帧
-        $parameter = new ServerSetParameter();
-        $parameter->code(intval($code));
-        $parameter->serial_number($serialNumber);
-        $parameter->channel_maximum_current($channelMaximumCurrent);
-        $parameter->full_judge($fullJudge);
-        $parameter->disconnect($disconnect);
-        $parameter->power_base($powerBase);
-        $parameter->coin_rate($coinRate);
-        $parameter->card_rate($cardRate);
-        $frame = strval($parameter);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
-        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-            frame:".bin2hex($frame)."
-            设置参数:$sendResult " . date('Y-m-d H:i:s', time()));
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数参数帧: frame: ".bin2hex($frame) );
-
-        //记录log
-        $content = "清空营业额: code:$code,channelMaximumCurrent:$channelMaximumCurrent,powerBase:$powerBase,coinRate:$coinRate,cardRate:$cardRate,fullJudge:$fullJudge,disconnect:$disconnect".'-'.bin2hex($frame).'-'.$date;
-        $this->record_log($code, $content);
-
-        $data = ['channelMaximumCurrent'=>$channelMaximumCurrent, "fullJudge"=>$fullJudge, "disconnect"=>$disconnect, "powerBase"=>$powerBase, "coinRate"=>$coinRate, "cardRate"=>$cardRate];
-        //使用队列,检查设置参数是否设置成功
-        $job = (new CheckSetParameter('parameter', $data, $code))
-            ->onQueue(env("APP_KEY"))
-            ->delay(Carbon::now()->addSeconds(6));
-        dispatch($job);
-
-
-        //返回下发结果
-        if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
-        }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
-        }
-
-    }
 
 
 
-    //修改时间
-    public function setDateTime(){
 
-        $params = $this->request->all();
-        $params = $params['params'];
-        $code = $params['code'];
-        $dateTime = $params['dateTime'];
 
-        $date = Carbon::now();
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间,时间 date: $date" );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间参数 code: $code " );
-
-        //获取workeId
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        $workeId = $evse->worker_id;
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
-        if(empty($workeId)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间,workeId为空 ");
-            return false;
-        }
-
-        $dateTime = date('YmdHis', strtotime($dateTime));
-        $dateTime = substr($dateTime, 2);
-
-        $setTime = new ServerSetTime();
-        $setTime->code(intval($code));
-        $setTime->date(intval($dateTime));
-        $frame = strval($setTime);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
-        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-            frame:".bin2hex($frame)."
-            修改时间:$sendResult " . date('Y-m-d H:i:s', time()));
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间下发帧 frame: ".bin2hex($frame) );
-        //返回下发结果
-        if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
-        }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
-        }
-
-    }
 
 
 
@@ -1229,6 +1221,131 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询下发结束时间:".Carbon::now());
     }
 
+    //状态查询
+    public function getStatusInfo(){
+        $params = $this->request->all();
+        $params = $params['params'];
+        $code = $params['code'];
+        //获取workeId
+        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        if(empty($evse)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态查询,未找到数据 ");
+            //返回数据
+            return $this->response->array(
+                [
+                    'status_code' => 500,
+                    'message' => "command send failed",
+                    'data'=>[]
+                ]
+            );
+        }
+        $workeId = $evse->worker_id;
+        if(empty($workeId)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态查询,workeId为空 ");
+            return $this->response->array(
+                [
+                    'status_code' => 201,
+                    'message' => "command send success",
+                    'data'=>[]
+                ]
+            );
+        }
+        //组装帧
+        $workStatus = new ServerGetWorkStatus();
+        $workStatus->code(intval($code));
+        $frame = strval($workStatus);
+        $sendResult  = EventsApi::sendMsg($workeId,$frame);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态查询,下发结果:sendResult:$sendResult, 下发帧: ".bin2hex($frame).'--'.Carbon::now());
+    }
+
+    //单通道时间查询
+    public function getChannel(){
+        $params = $this->request->all();
+        $params = $params['params'];
+        $code = $params['code'];
+        $channelNum = $params['channelNum']; //通道号
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 单通道时间查询,时间 date: ".Carbon::now() );
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 单通道时间查询 code: $code, channelNum:$channelNum " );
+
+        //获取workeId
+        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        $workeId = $evse->worker_id;
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
+        if(empty($workeId)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 单通道时间查询,workeId为空 ");
+            return false;
+        }
+        //组装帧
+        $singleChannel = new ServerSingleChannel();
+        $singleChannel->code(intval($code));
+        $singleChannel->channel_num($channelNum);
+        $frame = strval($singleChannel);
+        $sendResult  = EventsApi::sendMsg($workeId,$frame);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",frame:".bin2hex($frame)."单通道时间查询:$sendResult " . Carbon::now());
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 单通道时间查询下发帧 frame: ".bin2hex($frame) );
+        //记录log
+        $content = "单通道时间查询: code:$code,channelNum:$channelNum".'-'.bin2hex($frame).'-'.Carbon::now();
+        $this->record_log($code, $content);
+        //返回下发结果
+        if($sendResult){
+            return $this->response->array(
+                [
+                    'status_code' => 201,
+                    'message' => "command send sucesss"
+                ]
+            );
+        }else{
+            return $this->response->array(
+                [
+                    'status_code' => 500,
+                    'message' => "command send failed"
+                ]
+            );
+        }
+    }
+
+    //所有通道时间查询
+    public function getAllChannel(){
+        $params = $this->request->all();
+        $params = $params['params'];
+        $code = $params['code'];
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间查询,code: $code, 时间 date: ".Carbon::now() );
+
+        //获取workeId
+        $evse = Evse::where("code",$code)->first(); //firstOrFail
+        $workeId = $evse->worker_id;
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
+        if(empty($workeId)){
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间查询,workeId为空 ");
+            return false;
+        }
+        //组装帧
+        $thoroughTime = new ServerAllThoroughTime();
+        $thoroughTime->code(intval($code));
+        $frame = strval($thoroughTime);
+        $sendResult  = EventsApi::sendMsg($workeId,$frame);
+        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",frame:".bin2hex($frame)."所有通道时间查询:$sendResult " . Carbon::now());
+        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间查询下发帧 frame: ".bin2hex($frame) );
+        //记录log
+        $content = "所有通道时间查询: code:$code".'-'.bin2hex($frame).'-'.Carbon::now();
+        $this->record_log($code, $content);
+        //返回下发结果
+        if($sendResult){
+            return $this->response->array(
+                [
+                    'status_code' => 201,
+                    'message' => "command send sucesss"
+                ]
+            );
+        }else{
+            return $this->response->array(
+                [
+                    'status_code' => 500,
+                    'message' => "command send failed"
+                ]
+            );
+        }
+    }
 
     //后台营业额查询
     public function getBackstageTurnover(){
@@ -1422,73 +1539,7 @@ die;
 
 
 
-    //通道查询
-    public function getChannel(){
 
-        $params = $this->request->all();
-        $params = $params['params'];
-        $code = $params['code'];
-        $channelNum = $params['channelNum'];
-
-        $date = Carbon::now();
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询,时间 date: $date" );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询参数 code: $code, channelNum:$channelNum " );
-
-        //获取workeId
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        $workeId = $evse->worker_id;
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
-        if(empty($workeId)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额,workeId为空 ");
-            return false;
-        }
-
-
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询,流水号serialNumber：$serialNumber ");
-
-        $status = new ServerGetChannelStatus();
-        $status->code(intval($code));
-        $status->serial_number($serialNumber);
-        $status->channel_num($channelNum);
-        $frame = strval($status);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
-        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-            frame:".bin2hex($frame)."
-            通道查询:$sendResult " . date('Y-m-d H:i:s', time()));
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 通道查询下发帧 frame: ".bin2hex($frame) );
-
-        //记录log
-        $content = "心跳周期查询: code:$code,channelNum:$channelNum".'-'.bin2hex($frame).'-'.$date;
-        $this->record_log($code, $content);
-
-        //返回下发结果
-        if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
-        }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
-        }
-
-    }
 
 
 
@@ -1687,7 +1738,6 @@ die;
 
     //获取订单号
     private function getOrderId(){
-
         //从redis中取出订单号,如果没有设置为0
         $orderId = Redis::get('order_id');
         if(empty($orderId)){
@@ -1700,13 +1750,9 @@ die;
             }else{
                 Redis::set('order_id',++$orderId);
             }
-
         }
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 订单号 order_id:$orderId ");
-
         return $orderId;
-
     }
 
 

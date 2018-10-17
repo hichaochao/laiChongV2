@@ -25,6 +25,7 @@ class CreateQuChongEvsesTable extends Migration
             $table->tinyInteger('channel_num',FALSE,TRUE)->default(0)->comment('通道数量');
             $table->string('identification_number',20)->default('')->comment('设备识别号');
             $table->integer('serial_number')->unsigned()->default(1)->comment('流水号');
+            $table->integer('order_no')->unsigned()->default(1)->comment('单号');
             //状态信息
             $table->tinyInteger('online_status',FALSE,TRUE)->default(0)->comment('是否离线 0/离线,1/在线');
             $table->timestamp('last_update_status_time')->nullable()->comment('最后更新充电状态时间');

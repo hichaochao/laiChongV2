@@ -1,13 +1,12 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
 
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
-
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -23,7 +22,6 @@ class CheckResponse implements ShouldQueue
      * @var string 桩编号
      */
     protected $code;
-
 
     /**
      * @var string workId
@@ -45,8 +43,6 @@ class CheckResponse implements ShouldQueue
      */
     protected $type;
 
-
-
     /**
      * Create a new job instance.
      *
@@ -54,13 +50,11 @@ class CheckResponse implements ShouldQueue
      */
     public function __construct($code, $orderId, $type, $workeId, $frame)
     {
-
         $this->code = $code;
         $this->workeId = $workeId;
         $this->frame = $frame;
         $this->orderId = $orderId;
         $this->type = $type;
-
     }
 
     /**
@@ -72,7 +66,6 @@ class CheckResponse implements ShouldQueue
     {
         $evseController = new EvseController();
         $evseController->response( $this->code, $this->orderId, $this->type, $this->workeId, $this->frame );
-
     }
 
 

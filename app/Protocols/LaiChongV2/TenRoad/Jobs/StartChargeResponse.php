@@ -1,13 +1,12 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: lingf
+ * User: chao
  * Date: 2017-03-10
  * Time: 14:36
  */
 
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Jobs;
-
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
@@ -35,8 +34,6 @@ class StartChargeResponse implements ShouldQueue
     protected $result;
 
 
-
-
     /**
      * Create a new job instance.
      *
@@ -44,11 +41,9 @@ class StartChargeResponse implements ShouldQueue
      */
     public function __construct($code, $order_number, $result)
     {
-
         $this->code = $code;
         $this->order_number = $order_number;
         $this->result = $result;
-
     }
 
     /**
@@ -62,7 +57,4 @@ class StartChargeResponse implements ShouldQueue
         $evseController->startChargeResponse($this->code, $this->order_number, $this->result);
 
     }
-
-
-
 }
