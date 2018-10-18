@@ -3,7 +3,7 @@ namespace Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\Api;
 /**
  * Created by PhpStorm.
  * User: chao
- * Date: 2016-11-29
+ * Date: 2018-10-08
  * Time: 15:52
  */
 use Carbon\Carbon;
@@ -102,12 +102,10 @@ use Ramsey\Uuid\Uuid;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Sign as ServerSign;
 use Illuminate\Support\Facades\Redis;
 use Wormhole\Protocols\MonitorServer;
-
 use Wormhole\Protocols\Library\Log as Logger;
 
 class EvseController extends BaseController
 {
-
     public function test(){
 
 //        $condition = [
@@ -228,12 +226,7 @@ die;
         $port = Port::where('monitor_code',$monitor_code)->first();//firstOrFail
         if(empty($port)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,未找到数据 monitorCode: $monitorCode");
-            return $this->response->array(
-                [
-                    'status' => false,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         $code = $port->code;//桩编号
         //判断桩是否在线或则是否在空闲中
@@ -242,12 +235,7 @@ die;
         if($onlineStatus != 1 || $workStatus != 0){
             Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 启动充电,桩不在线或者不在空闲状态,online_status: ".$onlineStatus.' monitorCode:'.$monitorCode );
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "启动充电,桩不在线或者不在空闲状态 online_status:$onlineStatus, workStatus:$workStatus ");
-            return $this->response->array(
-                [
-                    'status' => false,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         //将订单号存到启动的枪口中
         $port->order_no = $order_no;
@@ -258,12 +246,7 @@ die;
             ->onQueue(env("APP_KEY"));
         dispatch($job);
         //返回下发结果
-        return $this->response->array(
-            [
-                'status' => true,
-                'message' => "command send sucesss"
-            ]
-        );
+        $this->success();
     }
 
     //续费
@@ -282,13 +265,8 @@ die;
         //获取枪数据
         $port = Port::where('monitor_code',$monitor_code)->first();//firstOrFail
         if(empty($port)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,未找到数据 monitorCode:$monitorCode ");
-            return $this->response->array(
-                [
-                    'status' => false,
-                    'message' => "command send failed"
-                ]
-            );
+            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,未找到数据 monitor_code:$monitor_code ");
+            $this->error();
         }
         $code = $port->code;//桩编号
         //判断桩是否在线或则是否在充电中
@@ -298,23 +276,13 @@ die;
         if($onlineStatus != 1 || $workStatus != 2){
             Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 续费,桩不在线或者不在充电状态,online_status:$onlineStatus, workStatus:$workStatus " );
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "续费,桩不在线或者不在充电状态 online_status:$onlineStatus, workStatus:$workStatus");
-            return $this->response->array(
-                [
-                    'status' => true,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         //续费下发
         $job = (new RenewSend($monitor_order_id, $monitor_code, $port_numbers, $charge_time, $order_no))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-        return $this->response->array(
-            [
-                'status' => true,
-                'message' => "command send sucesss"
-            ]
-        );
+        $this->success();
     }
 
     //停止充电
@@ -336,28 +304,17 @@ die;
         if($onlineStatus != 1 || $workStatus != 2){
             Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 停止充电,桩不在线或者不在充电状态,online_status:$onlineStatus, workStatus:$workStatus " );
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "启动充电,桩不在线或者不在充电状态 online_status:$onlineStatus, workStatus:$workStatus");
-            return $this->response->array(
-                [
-                    'status' => false,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         //下发停止充电帧监控
         $job = (new StopChargeSend($monitor_order_id))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-        return $this->response->array(
-            [
-                'status' => true,
-                'message' => "command send sucesss"
-            ]
-        );
+        $this->success();
     }
 
     //实时充电数据
     public function chargeRealtime(){
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 实时数据查询start ");
         $params = $this->request->all();
         $params = $params['params'];
@@ -398,13 +355,7 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 实时数据查询 monitorOrderId:$monitorOrderId 
         already_charge_time:".$data['already_charge_time']." leftTime:".$data['left_time']);//." sufficient_time:".$data['sufficient_time']
         //返回数据
-        return $this->response->array(
-            [
-                'status' =>true,
-                'message' => "command send sucesss",
-                'data'=>$data
-            ]
-        );
+        $this->success($data);
     }
 
     /*****************************************设置类****************************************************/
@@ -417,12 +368,7 @@ die;
         $hearbeatCycle = $params['hearbeatCycle'];
         if(empty($params) || empty($code) || empty($hearbeatCycle)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置心跳周期,收到的参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳设置,时间 date: ".Carbon::now()." 心跳设置参数 code: $code, hearbeatCycle:$hearbeatCycle" );
         //获取workeId
@@ -431,12 +377,7 @@ die;
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " workeId:$workeId, 设置充电周期,workeId为空 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
 
@@ -461,19 +402,9 @@ die;
         dispatch($job);
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -485,12 +416,7 @@ die;
         $threshold = $params['threshold'];
         if(empty($params) || empty($code) || empty($threshold)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值设置,收到的参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值设置,时间 date: ".Carbon::now()." 连接阈值参数 code: $code, threshold:$threshold" );
         //获取workeId
@@ -499,12 +425,7 @@ die;
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " workeId:$workeId, 连接阈值设置,workeId为空 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
 
@@ -526,19 +447,9 @@ die;
         dispatch($job);
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -550,12 +461,7 @@ die;
         $portNumber = $params['portNumber'];
         if(empty($params) || empty($code) || empty($portNumber)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 服务器端口设置,收到数据为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
 
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 服务器端口设置,时间 date: ".Carbon::now() );
@@ -566,12 +472,7 @@ die;
         $workeId = $evse->worker_id;
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 服务器端口设置, workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
 
@@ -595,19 +496,9 @@ die;
 
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -630,12 +521,7 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置参数,workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         //获取单号
         if(empty($evse->order_no) || $evse->order_no > 200){
@@ -672,24 +558,12 @@ die;
             ->delay(Carbon::now()->addSeconds(6));
         dispatch($job);
 
-
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
-
     }
 
     //修改时间
@@ -739,19 +613,9 @@ die;
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间下发帧 frame: ".bin2hex($frame) );
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -770,14 +634,8 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 清空营业额,workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
-
 
         //组装帧
         $turnover = new ServerEmptyTurnover();
@@ -799,35 +657,11 @@ die;
 
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
-
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     /*****************************************查询类****************************************************/
 
@@ -840,12 +674,7 @@ die;
         //参数是否为空
         if(empty($params) || empty($code)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询心跳周期, 收到参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
 
         //如果表里面有则直接获取返回
@@ -855,13 +684,7 @@ die;
         $hearbeatCycle = $evse->heartbeat_cycle;
         if(!empty($hearbeatCycle)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询心跳周期, hearbeatCycle:$hearbeatCycle ");
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                    'data'=>['heartbeatCycle'=>$hearbeatCycle]
-                ]
-            );
+            $this->success($hearbeatCycle);
         }
 
         //如果表里面没有心跳周期,则下发查询
@@ -869,12 +692,7 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询心跳周期, workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
 
         //组装帧
@@ -905,21 +723,9 @@ die;
 
         //返回下发结果
         if($heartbeat_cycle){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                    'data'=>['heartbeatCycle'=>$heartbeat_cycle]
-                ]
-            );
+            $this->success($heartbeat_cycle);
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>['heartbeatCycle'=>'']
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -931,12 +737,7 @@ die;
         //参数是否为空
         if(empty($params) || empty($code)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值查询, 收到参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值查询 code: $code ");
 
@@ -947,13 +748,7 @@ die;
         $threshold = $evse->threshold;
         if(!empty($threshold)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值查询, threshold:$threshold ");
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                    'data'=>['threshold'=>$threshold]
-                ]
-            );
+            $this->success($threshold);
         }
 
         //如果表里面没有连接阈值,则下发查询
@@ -961,12 +756,7 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 连接阈值查询, workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
 
         //组装帧
@@ -992,21 +782,9 @@ die;
 
         //返回下发结果
         if($threshold){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                    'data'=>['threshold'=>$threshold]
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>['threshold'=>'']
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -1018,12 +796,7 @@ die;
         //参数是否为空
         if(empty($params) || empty($code)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 信号强度查询, 收到参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 信号强度查询 code: $code ");
 
@@ -1033,12 +806,7 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 信号强度查询, workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
 
         //组装帧
@@ -1064,21 +832,9 @@ die;
 
         //返回下发结果
         if($signal_intensity){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                    'data'=>['threshold'=>$signal_intensity]
-                ]
-            );
+            $this->success($signal_intensity);
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>['threshold'=>'']
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -1116,13 +872,7 @@ die;
         $code = $params['code'];
         if(empty($code)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数,参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>[]
-                ]
-            );
+            $this->error();
         }
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数,时间 date: ".Carbon::now() );
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数参数 code: $code " );
@@ -1132,37 +882,19 @@ die;
         if(empty($evse)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数,未找到数据 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>[]
-                ]
-            );
+            $this->error();
         }
         $parameter = $evse->parameter;
         $parameter = json_decode($parameter, 1);
         if(!empty($parameter)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数 ");
             $data = array('card_rate'=>$parameter['card_rate'], 'card_time'=>$parameter['card_time'], 'coin_rate'=>$parameter['coin_rate'], 'power_base'=>$parameter['power_base'], 'channel_maximum_current'=>$parameter['channel_maximum_current'], 'disconnect'=>$parameter['disconnect']);
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send success",
-                    'data'=>$data
-                ]
-            );
+            $this->success($data);
         }
         $workeId = $evse->worker_id;
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数,workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send success",
-                    'data'=>[]
-                ]
-            );
+            $this->error();
         }
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
 
@@ -1179,21 +911,9 @@ die;
 
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                    'data'=>[]
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>[]
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -1231,24 +951,12 @@ die;
         if(empty($evse)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态查询,未找到数据 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    'data'=>[]
-                ]
-            );
+            $this->error();
         }
         $workeId = $evse->worker_id;
         if(empty($workeId)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 状态查询,workeId为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send success",
-                    'data'=>[]
-                ]
-            );
+            $this->success();
         }
         //组装帧
         $workStatus = new ServerGetWorkStatus();
@@ -1288,19 +996,9 @@ die;
         $this->record_log($code, $content);
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -1331,19 +1029,9 @@ die;
         $this->record_log($code, $content);
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss"
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed"
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -1366,13 +1054,7 @@ die;
         $turnover = Turnover::where($condition)->first();
         if(empty($turnover)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询,未找到数据 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                    "data"=>[]
-                ]
-            );
+            $this->error();
         }
 
         //计算电量
@@ -1393,13 +1075,7 @@ die;
          date:".$data['date']." coinNumber:".$data['coinNumber']." cardFree:".$data['cardFree']." cardTime:".$data['cardTime']." chargedPower:".$data['chargedPower']);
 
         //返回数据
-        return $this->response->array(
-            [
-                'status_code' => 201,
-                'message' => "command send sucesss",
-                'data'=>$data
-            ]
-        );
+        $this->success($data);
     }
 
     //查询ID
@@ -1409,24 +1085,14 @@ die;
         $code = $params['code'];
         if(empty($params) || empty($code)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询ID,参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
         //获取workeId
         $evse = Evse::where("code",$code)->first(); //firstOrFail
         if(empty($evse)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询ID,未找到数据 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
 
         $workeId = $evse->worker_id;
@@ -1443,19 +1109,9 @@ die;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",frame:".bin2hex($frame)."查询ID:$sendResult " . Carbon::now());
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
     }
 
@@ -1466,26 +1122,15 @@ die;
         $code = $params['code'];
         if(empty($params) || empty($code)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置id,参数为空 ");
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
         //获取workeId
         $evse = Evse::where("code",$code)->first(); //firstOrFail
         if(empty($evse)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置id,未找到数据 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
-
 
         $workeId = $evse->worker_id;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
@@ -1494,20 +1139,8 @@ die;
             return false;
         }
 
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 设置id,流水号serialNumber：$serialNumber ");
-
-
         $setId = new ServerSetId();
         $setId->code(intval($code));
-        $setId->serial_number(intval($serialNumber));
         $setId->device(intval($deviceId));
         $frame = strval($setId);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
@@ -1516,57 +1149,26 @@ die;
             frame:".bin2hex($frame)."
             设置id:$sendResult " . date('Y-m-d H:i:s', time()));
 
-
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
     //时间查询
     public function getDateTime(){
-
-
         $params = $this->request->all();
         $params = $params['params'];
         $code = $params['code'];
-
         //获取workeId
         $evse = Evse::where("code",$code)->first(); //firstOrFail
         if(empty($evse)){
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询时间,未找到数据 ");
             //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
-
 
         $workeId = $evse->worker_id;
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 获取workeId:$workeId ");
@@ -1575,20 +1177,8 @@ die;
             return false;
         }
 
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询时间,流水号serialNumber：$serialNumber ");
-
-
         $dateTime = new ServerGetDateTime();
         $dateTime->code(intval($code));
-        $dateTime->serial_number(intval($serialNumber));
         $frame = strval($dateTime);
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
         $sendResult  = EventsApi::sendMsg($workeId,$frame);
@@ -1596,145 +1186,25 @@ die;
             frame:".bin2hex($frame)."
             查询时间:$sendResult " . date('Y-m-d H:i:s', time()));
 
-
         //返回下发结果
         if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                ]
-            );
+            $this->success();
         }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
+            $this->error();
         }
-
-
-
     }
-
-
-
-
-
-
-
-
-    //查询设备识别号
-    public function deviceIdentification(){
-
-        $params = $this->request->all();
-        $params = $params['params'];
-        $code = $params['code'];
-
-        //获取workeId
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        if(empty($evse)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询设备识别号,未找到数据 ");
-            //返回数据
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
-        }
-
-
-        $workeId = $evse->worker_id;
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询设备识别号:$workeId ");
-        if(empty($workeId)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询设备识别号,workeId为空 ");
-            return false;
-        }
-
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询设备识别号,流水号serialNumber：$serialNumber ");
-
-
-        $deviceIdentification = new ServerGetDeviceIdentification();
-        $deviceIdentification->code(intval($code));
-        $deviceIdentification->serial_number(intval($serialNumber));
-        $frame = strval($deviceIdentification);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
-        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-            frame:".bin2hex($frame)."
-            查询设备识别号:$sendResult " . date('Y-m-d H:i:s', time()));
-
-
-        //返回下发结果
-        if($sendResult){
-            return $this->response->array(
-                [
-                    'status_code' => 201,
-                    'message' => "command send sucesss",
-                ]
-            );
-        }else{
-            return $this->response->array(
-                [
-                    'status_code' => 500,
-                    'message' => "command send failed",
-                ]
-            );
-        }
-
-
-    }
-
 
     //获取redis存储log
     public function code_log(){
-
         $params = $this->request->all();
         $params = $params['params'];
         $code = $params['code'];
         $data = Redis::keys($code.'*');
-
         return $data;
-
 //        $key = Redis::keys('c*');
 //        $aa = Redis::get($key[0]);
 //        var_dump($aa);die;
-
     }
-
-
-
-
-
-    //获取流水号
-    private function getSerialNumber($code){
-
-        //从redis中取出流水号,如果没有设置为1
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳设置,流水号serialNumber：$serialNumber ");
-
-        return $serialNumber;
-
-    }
-
-
-
 
     //获取订单号
     private function getOrderId(){
@@ -1755,15 +1225,33 @@ die;
         return $orderId;
     }
 
-
-
     public function record_log($code, $content){
         //记录log
         $parameter = $code.uniqid(mt_rand(),1);
         Redis::set($parameter,$content,'EX',86400);
     }
 
+    //成功返回
+    private function success($data=[]){
+        return $this->response->array(
+            [
+                'status_code' => 200,
+                'message' => "command send sucesss",
+                "data"=>$data
+            ]
+        );
+    }
 
+    //失败返回
+    private function error($data=[]){
+        return $this->response->array(
+            [
+                'status_code' => 500,
+                'message' => "command send failed",
+                "data"=>$data
+            ]
+        );
+    }
 
 
 

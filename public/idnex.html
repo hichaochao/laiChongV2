@@ -1,1 +1,0 @@
-<title>www.qianiu.com 售卖中</title><iframe src="https://wanwang.aliyun.com/nametrade/domainshow?domain=www.qianiu.com" style="width:100%;border:none;height:1500px;"></iframe>

@@ -2,50 +2,35 @@
 
 /**
  * Created by PhpStorm.
- * User: lingf
- * Date: 2016-10-05
+ * User: chao
+ * Date: 2018-10-05
  * Time: 22:16
  */
-
-//$protocol = "HD10";
-//$protocol = "NJINT";
-//$protocol = "HaiGe";
-//$protocol = "tcp";
-$protocol = "TenRoad"; //QuChong
+$protocol = "TenRoad";
 //协议名称，注意：协议为tcp时，必须手动指定协议名称；（某协议Protocol::NAME
 $namespace = "\\Wormhole\\Protocols\\LaiChongV2\\$protocol";
 $protocolInstance = $namespace."\\Protocol";
-//var_dump($protocolInstance);die;
 $protocolName =$protocolInstance::NAME;
-
 $event = "$namespace\\EventsApi";
-//$event = "$namespace\\Events";
 
 return [
-
     //需配置内容：monitor 服务器地址，本机地址和端口， gateway协议和端口，消息对应的协议名称；
-
     "debug"=>true,
-
-
-
     //监控平台信息
     "monitor_url"=>"http://m.uni.cn:80",  // http://domain:port
     "monitor_api_on_message"=>"/api/mni/api/evse_message/hash/",
     "monitor_api_on_close"=>"/api/mni/api/evse_offline/hash/",
 
-
     //本机信息
-    "local_address"=>"45.62.102.179", // 本机ip地址 10.10.33.238
-    "local_port"=>80,//                本机端口  8889
+    "local_address"=>"45.62.102.179", //本机ip地址
+    "local_port"=>80,//本机端口
 
     //平台名称
     "platform_name"=>'QuChong',
     //协议服务器ip
-    "protocol_ip"=>'45.62.102.179',//10.44.64.18 10.10.33.238   172.18.0.7
+    "protocol_ip"=>'45.62.102.179',
     //协议服务器端口
-    "protocol_port"=>'10000',//8889  80  8891
-    
+    "protocol_port"=>'10000',
 
     //register
     "register"=>[
@@ -73,8 +58,6 @@ return [
     ],
 
     //以下由开发配置
-
-
     "message"=> json_encode([
         "params"=>[
             "server_ip"=>"%s",
@@ -99,15 +82,4 @@ return [
             "protocol"=>$protocolName
         )
     ]),
-
-
-
-
-
-
-
-
-
-
-
 ];

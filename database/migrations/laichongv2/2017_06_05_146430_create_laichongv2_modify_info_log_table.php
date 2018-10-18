@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateQuChongModifyInfoLogTable extends Migration
+class CreateLaiChongV2ModifyInfoLogTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,11 +13,8 @@ class CreateQuChongModifyInfoLogTable extends Migration
      */
     public function up()
     {
-        Schema::create('quchong_modify_info_log', function (Blueprint $table) {
-
-
+        Schema::create('laichongv2_modify_info_log', function (Blueprint $table) {
             $table->uuid('id',36)->default("")->commnet('日志id');
-
             //桩信息
             $table->string('before_info',200)->default("")->commnet('修改之前信息');
             $table->string('after_info',200)->default("")->commnet('修改之后信息');

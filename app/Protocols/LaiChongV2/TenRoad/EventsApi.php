@@ -25,35 +25,21 @@ use Wormhole\Protocols\BaseEvents;
 use Wormhole\Protocols\Tools;
 
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Frame;
-
 use Wormhole\Protocols\LaiChongV2\TenRoad\Controllers\ProtocolController;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Evse;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Models\Port;
-
 use Wormhole\Protocols\MonitorServer;
 
 //签到
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Sign as EvseSign;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Sign as ServerSign;
 
 //心跳
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
 
 //通道状态
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\WorkStatus as EvseWorkStatus;
 
-//启动充电
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
-
-//续费
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Renew as ServerRenew;
-
-//停止充电
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StopCharge as ServerStopCharge;
-
 //心跳设置
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetHearbeat as ServerSetHearbeat;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetHearbeat as EvseHearbeat;
 
 //端口设置
@@ -62,15 +48,7 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetPort as EvseSetPort;
 //连接阈值设置
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\SetThreshold as EvseSetThreshold;
 
-//清空营业额
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\EmptyTurnover as ServerEmptyTurnover;
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\EmptyTurnover as EvseEmptyTurnover;
-
-//设置参数
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\SetParameter as ServerSetParameter;
-
 //心跳查询
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetHearbeat as ServerGetHeartbeat;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetHearbeat as EvseGetHeartbeat;
 
 //信号强度
@@ -84,11 +62,9 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ReadMeterSuccess as Evse
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\ReadMeterFail as EvseReadMeterFail;
 
 //营业额查询
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetTurnover as ServerGetTurnover;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetTurnover as EvseGetTurnover;
 
 //查询参数
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\GetParameter as ServerGetParameter;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetParameter as EvseGetParameter;
 
 //状态查询
@@ -103,22 +79,16 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\AllThoroughTime as EvseA
 //控制,统一相应
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Answer as EvseAnswer;
 
-
 //查询ID
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetId as EvseGetId;
-
-//查询设备识别号
-use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\GetDeviceIdentification as EvseGetDeviceIdentification;
 
 use Illuminate\Support\Facades\Redis;
 
 use Wormhole\Protocols\Library\Log as Logger;
 
-
 //签到
 use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\SignReport;
-//自动停止
-use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\AutoStopReport;
+
 //日结
 use Wormhole\Protocols\LaiChongV2\TenRoad\Jobs\TurnoverReport;
 //心跳
@@ -283,10 +253,6 @@ class EventsApi extends BaseEvents
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间 " );
                     self::get_all_channel_response($message);
                     break;
-                case (0x35.$main_board_type):
-                    Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 上传状态 " );
-                    self::get_channel_response($message);
-                    break;
                 case (0x31.$main_board_type):
                     Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 查询参数 " );
                     self::get_parameter_response($message);
@@ -303,7 +269,6 @@ class EventsApi extends BaseEvents
         }
     }
 
-
     /*****************************************桩主动上报****************************************************/
 
     //签到
@@ -311,7 +276,6 @@ class EventsApi extends BaseEvents
     {
         $sign = new EvseSign();
         $sign($message);
-
         //接收数据
         $version = $sign->version->getValue();//版本号
         $code = $sign->code->getValue(); //桩编号
@@ -333,7 +297,6 @@ class EventsApi extends BaseEvents
             ->onQueue(env("APP_KEY"));
         dispatch($job);
     }
-
 
     //心跳
     private static function hearbeat($message){
@@ -386,48 +349,6 @@ class EventsApi extends BaseEvents
         dispatch($job);
     }
 
-    //日结
-//    private static function report($message){
-//
-//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-//            收到日结start " . date('Y-m-d H:i:s', time()));
-//        $report = new EvseReport();
-//        $report($message);
-//        $code = $report->code->getValue();
-//        $meter_number = $report->meter_number->getValue();                 //电表编号
-//        $date = $report->date->getValue();                                 //时间
-//        $electricity = $report->electricity->getValue();                   //电量
-//        $total_electricity = $report->total_electricity->getValue() / 100; //总电量
-//        $coins_number = $report->coins_number->getValue();                 //投币次数
-//        $card_amount = $report->card_amount->getValue();                   //刷卡金额
-//        $card_time = $report->card_time->getValue();                       //刷卡时长
-//
-//        //换算单位
-//        $electricity_con = [];
-//        foreach ($electricity as $k=>$v){
-//            $electricity_con[$k] = $v / 100;
-//        }
-//
-//
-//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-//                code:$code, meter_number:$meter_number, date:$date, electricity:".json_encode($electricity_con).", total_electricity:$total_electricity
-//                 coins_number:$coins_number, card_amount:$card_amount, card_time:$card_time " . date('Y-m-d H:i:s', time()));
-//
-//        //记录log
-//        $fiel_data = " 日结,桩上报时间 date: ".Carbon::now()." 日结,桩上报参数 code:$code, meter_number:$meter_number, date:$date, electricity:".json_encode($electricity).", total_electricity:$total_electricity, coins_number:$coins_number, card_amount:$card_amount, card_time:$card_time "." 日结,桩上报帧 frame: ".bin2hex($message);
-//        $redis_data = "日结上报:".'-'.json_encode(array('code'=>$code, 'meter_number'=>$meter_number, 'date'=>$date, 'electricity'=>$electricity_con, 'total_electricity'=>$total_electricity, 'coins_number'=>$coins_number, 'card_amount'=>$card_amount, 'card_time'=>$card_time)).'-'.bin2hex($message).'-'.Carbon::now().'+';
-//        self::record_log($code, $fiel_data, $redis_data);
-//
-//        //日结进入队列
-//        $job = (new TurnoverReport($code, $meter_number, $date, $electricity_con, $total_electricity, $coins_number, $card_amount, $card_time))
-//            ->onQueue(env("APP_KEY"));
-//        dispatch($job);
-//    }
-
-
-
-
-
     /*****************************************控制类****************************************************/
 
     //启动充电响应
@@ -460,7 +381,6 @@ class EventsApi extends BaseEvents
         dispatch($job);
     }
 
-
     //续费响应
     private static function renew_response($message){
         $renew = new EvseAnswer();
@@ -489,7 +409,6 @@ class EventsApi extends BaseEvents
         //$result = self::$controller->renew($code, $order_number, $result);
     }
 
-
     //停止充电响应
     private static function stop_charge_response($message){
         $renew = new EvseAnswer();
@@ -514,14 +433,9 @@ class EventsApi extends BaseEvents
         $job = (new StopChargeResponse($code, $order_no, $left_time))
             ->onQueue(env("APP_KEY"));
         dispatch($job);
-
-
-
     }
 
-
     /*****************************************设置类****************************************************/
-
 
     //心跳设置响应
     private static function set_hearbeat_response($message){
@@ -541,7 +455,6 @@ class EventsApi extends BaseEvents
         //处理数据
         $result = self::$controller->setHearbeatCycle($code, $result);
     }
-
 
     //服务器信息设置响应
     private static function set_server_info_response($message){
@@ -647,46 +560,15 @@ class EventsApi extends BaseEvents
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 统一应答： code:$code, order_no:$order_no, instruct:$instruct, result:$result, frame:".bin2hex($message) . Carbon::now());
     }
 
-
-
-
-
-
-
-
     //设置ID响应
     private static function set_id_response($message){
-
         $setId = new EvseSetId();
         $frame_load = $setId($message);
         $code = $frame_load->code->getValue();
         $result = $frame_load->result->getValue();
-
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 设置ID响应：
             code:$code, result:$result " . Carbon::now());
-
-
     }
-
-    //修改时间
-    private static function set_date_time_response($message){
-
-        $dateTime = new EvseSetDateTime();
-        $frame_load = $dateTime($message);
-        $code = $frame_load->code->getValue();
-        $result = $frame_load->result->getValue();
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间响应时间 date: ".Carbon::now() );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间响应参数 code:$code, result:$result " );
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 修改时间响应帧 frame: ".bin2hex($message) );
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 设置时间响应：
-            code:$code, result:$result " . Carbon::now());
-    }
-
-
-
-
 
     /*****************************************查询类****************************************************/
 
@@ -798,7 +680,6 @@ class EventsApi extends BaseEvents
         Redis::set($parameter,$content,'EX',$expire);
     }
 
-
     //营业额查询响应
     private static function get_turnover_response($message){
         $turnover = new EvseGetTurnover();
@@ -874,7 +755,6 @@ class EventsApi extends BaseEvents
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 所有通道时间查询响应帧 frame: ".bin2hex($message).'时间:'.Carbon::now() );
     }
 
-
     //查询参数响应
     private static function get_parameter_response($message){
         $parameter = new EvseGetParameter();
@@ -911,26 +791,6 @@ class EventsApi extends BaseEvents
         $deviceId = $frame_load->device->getValue();
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 查询ID响应：code:$code, deviceId:$deviceId " . Carbon::now());
     }
-
-
-    //查询设备编号响应
-    private static function get_identification_response($message){
-
-        $getDeviceIdentification = new EvseGetDeviceIdentification();
-        $frame_load = $getDeviceIdentification($message);
-        $code = $frame_load->code->getValue();
-        $deviceIdentification = $frame_load->deviceIdentification->getValue();
-
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 查询设备编号响应：
-            code:$code, deviceIdentification:$deviceIdentification " . Carbon::now());
-
-
-    }
-
-
-
-
 
     //记录log,包括参数,帧,时间
     private static function record_log($code, $fiel_data, $redis_data){

@@ -55,6 +55,5 @@ class StartChargeResponse implements ShouldQueue
     {
         $evseController = new EvseController();
         $evseController->startChargeResponse($this->code, $this->order_number, $this->result);
-
     }
 }

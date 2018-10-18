@@ -2,8 +2,8 @@
 namespace Wormhole\Protocols\LaiChongV2\TenRoad\Controllers;
 /**
  * Created by PhpStorm.
- * User: sc
- * Date: 2017-05-12
+ * User: chao
+ * Date: 2018-10-9
  * Time: 17:47
  */
 
@@ -53,7 +53,6 @@ use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Report as ServerReport
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Evse\Heartbeat as EvseHeartbeat;
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\Heartbeat as ServerHeartbeat;
 
-
 //启动充电
 use Wormhole\Protocols\LaiChongV2\TenRoad\Protocol\Server\StartCharge as ServerStartCharge;
 //续费
@@ -67,7 +66,7 @@ class EvseController extends Controller
     {
 
     }
-
+    //心跳监控
     public function checkHeartbeat($id)
     {
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 心跳监控START id : $id ");
@@ -173,7 +172,6 @@ class EvseController extends Controller
         return false;
     }
 
-
     //检测启动续费停止是否收到桩响应
     public function response($code, $orderId, $type, $workeId, $frame)
     {
@@ -219,8 +217,6 @@ class EvseController extends Controller
         }
 
     }
-
-
 
     //***************************************桩主动上报***********************************//
 
@@ -424,120 +420,6 @@ class EvseController extends Controller
         return $sendResult;
     }
 
-
-
-    //自动停止上报
-    public function autoStopReport($code, $order_number, $start_type, $left_time, $stop_reason){
-
-
-        //获取workeId
-        $evse = Evse::where("code",$code)->first(); //firstOrFail
-        if(empty($evse)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止,应答充电桩未找到clientID code:$code, order_number:$order_number, left_time:$left_time, stop_reason:$stop_reason " . Carbon::now());
-            return false;
-        }
-        $workeId = $evse->worker_id;
-
-        //应答充电桩组装数据
-        $automaticStop = new ServerAutomaticStop();
-        $automaticStop->code($code);
-        $automaticStop->channel_number(intval($order_number));
-        $automaticStop->result(1);
-        $frame = strval($automaticStop);
-
-        //应答充电桩
-        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            自动停止,应答桩结果, sendResult:$sendResult   " . Carbon::now());
-
-
-        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 桩自动停止,应答桩 frame: ".bin2hex($frame));
-        //订单id为空,则直接返回
-        if(empty($order_number)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止, 桩上报的订单id为空 order_number:$order_number " . Carbon::now());
-            return false;
-        }
-
-
-        //通过code和order_id获取启动信息
-        $condition = [
-            ['code', '=', $code],
-            ['order_id', '=', $order_number]
-        ];
-        $port = Port::where($condition)->first();
-        if(empty($port)){
-            //应答充电桩
-            $sendResult  = EventsApi::sendMsg($workeId,$frame);
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止,未找到对应枪口或者已经接收到一次 code:$code, order_number:$order_number,  sendResult:$sendResult " . Carbon::now());
-            return true;
-        }
-
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ", 
-            自动停止,, code:$code, port:$port->port_number " . Carbon::now());
-
-        $monitorOrderId = $port->monitor_order_id;
-        $chargeArgs = $port->charge_args;
-        $chargeOrderMapping = ChargeOrderMapping::where('monitor_order_id', $monitorOrderId)->first();
-
-        //生成充电记录
-        $res = ChargeRecords::create([
-            'code'=>$port->code,
-            'port_number'=>$port->port_number,
-            'monitor_order_id'=>$port->monitor_order_id,
-            'order_id'=>$port->order_id,
-            'charge_type'=>$port->charge_type,
-            'charge_args'=>$port->charge_args,
-            'start_time'=>$port->start_time,
-            'end_time'=>Carbon::now(),
-            'stop_reason'=>$stop_reason, //停止原因添加
-            'start_type'=>$start_type,
-            'left_time'=>$left_time,
-            'charge_records_time'=>Carbon::now(),
-
-        ]);
-        //如果自动停止未生成充电记录
-        if(empty($res)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止,未生成充电记录 " . Carbon::now());
-            return false;
-        }
-        //更改状态,清空数据
-        $port->monitor_order_id = 0;
-        $port->order_id = 0;
-        $port->work_status = 0; //状态,空闲中
-        $port->is_fuse = 0;
-        $port->is_flow = 0;
-        $port->is_connect = 0;
-        $port->is_full = 0;
-        $port->start_up = 0;
-        $port->pull_out = 0;
-        $port->channel_status = '';
-        $port->charged_power = 0;
-        $port->charge_type = 0;
-        $port->charge_args = 0;
-        $port->renew = 0;
-        $port->left_time = 0;
-        $port->current = 0;
-        $row = $port->save();
-
-        //更新charge_order_mapping状态
-        $chargeOrderMapping->is_success = 3; //停止成功
-        $chargeOrderMapping->stop_reason = $stop_reason;
-        $chargeOrderMapping->save();
-
-        //如果未清空数据,返回false
-        if(empty($row)){
-            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止,未清空数据 " . Carbon::now());
-            return false;
-        }
-        //停止成功,调用monitor接口
-        $job = (new AutoStopCharge($monitorOrderId, $left_time, $chargeArgs))
-            ->onQueue(env("APP_KEY"));
-        dispatch($job);
-        return true;
-    }
-
-
-
     //营业额查询
     public function getTurnover($code, $coin_num, $card_cost){
         //前一天
@@ -605,132 +487,6 @@ class EvseController extends Controller
         Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 营业额查询数据异常 ");
         return false;
     }
-
-
-    //日结
-//    public function turnoverReport($code, $meter_number, $date_info, $electricity, $total_electricity, $coins_number, $card_amount, $card_time){
-//
-//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结处理数据start ");
-//        //将数组转换为字符串
-//        $electricity_json = json_encode($electricity);
-//
-//
-//        //处理日期
-//        //$frontDate = date("Y-m-d",strtotime("-1 day"));
-//        $date = '20'.$date_info;
-//        $date = date('Y-m-d', strtotime($date));
-//
-//        //获得上一次上报的数据
-//        $turnoverData = Turnover::where([['stat_date', '<', $date],['code', $code]])
-//            ->orderBy('stat_date', 'desc')
-//            ->first();
-//        //是否找到数据
-//        $coinNumber = 0;
-//        $cardFree = 0;
-//        $cardTime = 0;
-//        if(!empty($turnoverData)){
-//            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,获取到上一次上报数据 ");
-//            $coinNumber = $turnoverData->coin_number;
-//            $cardFree = $turnoverData->card_free;
-//            $cardTime = $turnoverData->card_time;
-//        }
-//
-//        //是否有当前上报日期数据
-//        $condition = [
-//            ['code', '=', $code],
-//            ['stat_date', '=', $date]
-//        ];
-//        $turnover = Turnover::where($condition)->first();
-//
-//        //如果是空则创建,否则更新
-//        if(empty($turnover)){
-//            $result = Turnover::create([
-//                'code'=>$code,
-//                'electricity_meter_number'=>$meter_number,
-//                'stat_date'=>$date,
-//                'charged_power_time'=>$electricity_json,
-//                'charged_power'=>$total_electricity,
-//                'coin_number'=>$coins_number - $coinNumber,
-//                'card_free'=>$card_amount - $cardFree,
-//                'card_time'=>$card_time - $cardTime
-//
-//            ]);
-//            //如果创建失败,返回false
-//            if(empty($result)){
-//                Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,创建数据失败 " . date('Y-m-d H:i:s', time()));
-//                return false;
-//            }
-//
-//
-//        }else{
-//            $turnover->electricity_meter_number = $meter_number;
-//            $turnover->stat_date = $date;
-//            $turnover->charged_power_time = $electricity_json;
-//            $turnover->charged_power = $total_electricity;
-//            $turnover->coin_number = $coins_number - $coinNumber;
-//            $turnover->card_free = $card_amount - $cardFree;
-//            $turnover->card_time = $card_time - $cardTime;
-//
-//            $result = $turnover->save();
-//        }
-//
-//
-//        //如果更新失败,返回false
-//        if(empty($result)){
-//            Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,更新数据失败 " . date('Y-m-d H:i:s', time()));
-//            return false;
-//        }
-//
-//        //计算出一天的电量
-//        $electricity_num = 0;
-//        foreach ($electricity as $v){
-//
-//            $electricity_num = $v + $electricity_num;
-//
-//        }
-//
-//        //获取workeId
-//        $evse = Evse::where("code",$code)->first(); //firstOrFail
-//        $workeId = $evse->worker_id;
-//
-//        //如果更新数据成功,应答充电桩
-//        $time = date('YmdHis', time());
-//        $time = substr($time, 2);
-//        $report = new ServerReport();
-//        $report->code(intval($code));
-//        $report->date(intval($time));
-//        $report->receive_date(intval($date_info));
-//        $report->result(1);
-//        $frame = strval($report);
-//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . "frame：$frame");
-//        $sendResult  = EventsApi::sendMsg($workeId,$frame);
-//        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . ",
-//            frame:".bin2hex($frame)."
-//            日结应答充电桩结果:$sendResult " . Carbon::now());
-//
-//        Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 日结,应答桩 frame: ".bin2hex($frame) );
-//
-//
-//
-//
-//        //调用monitor,如果monitor返回失败则一直上报
-//        //停止成功,调用monitor接口
-//        $job = (new Report($code, $coins_number, $card_amount, $electricity_num, $total_electricity, $date))
-//            ->onQueue(env("APP_KEY"));
-//        dispatch($job);
-//
-//
-//    }
-
-
-
-
-
-
-
-
-
-
 
     //************************************服务器下发**************************************************//
 
@@ -895,8 +651,6 @@ class EvseController extends Controller
         dispatch($job);
     }
 
-
-
     //停止充电下发
     public function stopChargeSend($monitorOrderId){
         //通过code和port_number找到order_id
@@ -959,11 +713,6 @@ class EvseController extends Controller
             ->delay(Carbon::now()->addSeconds(7));
         dispatch($job);
     }
-
-
-
-
-
 
     //*****************************************桩响应*********************************************************//
 
@@ -1040,7 +789,6 @@ class EvseController extends Controller
         }
         return TRUE;
     }
-
 
     //续费响应
     public function renewResponse($code, $order_number, $result){
@@ -1192,7 +940,6 @@ class EvseController extends Controller
         }
     }
 
-
     //如果桩自动停止,monitor接受失败继续发送
     public function AutoStopCharge($monitorOrderId, $left_time, $chargeArgs){
 
@@ -1209,12 +956,7 @@ class EvseController extends Controller
         }else{
             Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 自动停止,调用monitor 成功" . Carbon::now());
         }
-
-
-
     }
-
-
 
     //如果日结,monitor接受失败继续发送
     public function Report($code, $coins_number, $card_amount, $electricity_num, $total_electricity, $date){
@@ -1227,45 +969,15 @@ class EvseController extends Controller
                 ->onQueue(env("APP_KEY"));
             dispatch($job);
         }
-
-
-
     }
-
-
-
-
-    //取出流水号
-    private function serial_num($code){
-
-        $serialNumber = Redis::get($code.':serial_number');
-        if(empty($serialNumber)){
-            $serialNumber = 1;
-            Redis::set($code.':serial_number',$serialNumber);
-        }else{
-            Redis::set($code.':serial_number',++$serialNumber);
-        }
-        Log::debug(__NAMESPACE__ . "/" . __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . " 流水号serialNumber：$serialNumber ");
-
-        return $serialNumber;
-
-    }
-
-
-
 
     //记录log,包括参数,帧,时间
     private function record_log($code, $fiel_data, $redis_data){
-
         Logger::log($code, __CLASS__ . "/" . __FUNCTION__ . "@" . __LINE__ . $fiel_data );
-
         //记录log
         $parameter = $code.uniqid(mt_rand(),1);
         Redis::set($parameter,$redis_data,'EX',86400);
-
     }
-
-
 
 
 }
